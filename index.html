@@ -129,7 +129,7 @@
     /* Visual Matrix/Node Canvas */
     .canvas-container {
       position: relative;
-      background: #040d1a;
+      background: #020610;
       overflow: hidden;
     }
 
@@ -229,7 +229,7 @@
         <div>}, <span class="num">1500</span>);</div>
       </div>
 
-      <!-- Animated Cyber Canvas -->
+      <!-- Upgraded Cyber Radar / Neural Network Canvas -->
       <div class="canvas-container">
         <canvas id="matrix-canvas"></canvas>
       </div>
@@ -263,8 +263,8 @@
     let engineRunning = false;
     let wakeLock = null;
     let logInterval = null;
+    let radarAngle = 0;
 
-    // Bank of randomized system commands, errors, and startup steps
     const randomSystemLogs = [
       { text: "EXECUTING: SYS_EXEC_THREAD_ALPHA", type: "sys" },
       { text: "SYSTEM FAIL: UNHANDLED_EXCEPTION AT 0x004F", type: "fail" },
@@ -286,7 +286,6 @@
       { text: "SUCCESS: CORE_SHIELD_PING_ACKNOWLEDGED", type: "success" }
     ];
 
-    // Resize Canvas
     function resizeCanvas() {
       canvas.width = canvas.parentElement.clientWidth;
       canvas.height = canvas.parentElement.clientHeight;
@@ -294,26 +293,74 @@
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    // Matrix / Digital Rain Particle Canvas
-    const particles = Array.from({ length: 45 }, () => ({
+    // Interconnecting Neural Nodes
+    const nodes = Array.from({ length: 28 }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      speed: 0.5 + Math.random() * 1.5,
-      size: 2 + Math.random() * 3
+      vx: (Math.random() - 0.5) * 0.8,
+      vy: (Math.random() - 0.5) * 0.8,
+      radius: 2 + Math.random() * 2
     }));
 
     function drawVisualizer() {
-      ctx.fillStyle = 'rgba(4, 13, 26, 0.2)';
+      // Dark slate fade
+      ctx.fillStyle = 'rgba(2, 6, 16, 0.25)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      particles.forEach(p => {
-        p.y += engineRunning ? p.speed * 2.5 : p.speed * 0.5;
-        if (p.y > canvas.height) p.y = 0;
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const primaryColor = engineRunning ? '#56d364' : '#38bdf8';
+      const secondaryColor = engineRunning ? 'rgba(86, 211, 100, 0.15)' : 'rgba(56, 189, 248, 0.1)';
 
-        ctx.fillStyle = engineRunning ? '#56d364' : '#58a6ff';
+      // 1. Draw Target Radar Rings
+      ctx.strokeStyle = secondaryColor;
+      ctx.lineWidth = 1;
+      [40, 80, 130, 180].forEach(r => {
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+
+      // 2. Draw Rotating Radar Line
+      radarAngle += engineRunning ? 0.05 : 0.015;
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(
+        centerX + Math.cos(radarAngle) * 200,
+        centerY + Math.sin(radarAngle) * 200
+      );
+      ctx.strokeStyle = primaryColor;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // 3. Update & Draw Connected Network Nodes
+      nodes.forEach((node, i) => {
+        node.x += node.vx * (engineRunning ? 1.8 : 1);
+        node.y += node.vy * (engineRunning ? 1.8 : 1);
+
+        if (node.x < 0 || node.x > canvas.width) node.vx *= -1;
+        if (node.y < 0 || node.y > canvas.height) node.vy *= -1;
+
+        // Draw node
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+        ctx.fillStyle = primaryColor;
         ctx.fill();
+
+        // Connect nearby nodes with lines
+        for (let j = i + 1; j < nodes.length; j++) {
+          const other = nodes[j];
+          const dist = Math.hypot(node.x - other.x, node.y - other.y);
+          if (dist < 85) {
+            ctx.beginPath();
+            ctx.moveTo(node.x, node.y);
+            ctx.lineTo(other.x, other.y);
+            ctx.strokeStyle = primaryColor;
+            ctx.globalAlpha = 1 - dist / 85;
+            ctx.stroke();
+            ctx.globalAlpha = 1.0;
+          }
+        }
       });
 
       requestAnimationFrame(drawVisualizer);
@@ -333,7 +380,7 @@
       logInterval = setInterval(() => {
         const randomItem = randomSystemLogs[Math.floor(Math.random() * randomSystemLogs.length)];
         addLog(randomItem.text, randomItem.type);
-      }, 1400); // Prints a new random system line every 1.4s
+      }, 1400);
     }
 
     function stopRandomLogStream() {
@@ -353,14 +400,10 @@
 
         addLog('Executing keep_alive_core.js...', 'sys');
 
-        // Play silent media loop
         video.play().catch(() => {});
         addLog('Background worker process attached to DOM thread.', 'success');
 
-        // Request Screen Wake Lock
         requestWakeLock();
-
-        // Begin streaming random system commands & errors
         startRandomLogStream();
       } else {
         engineRunning = false;
