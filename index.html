@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Student Portal & System Control</title>
+  <title>Student Access Portal & Engine</title>
   <style>
     * {
       box-sizing: border-box;
@@ -19,12 +19,13 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
       padding: 2rem 1rem;
     }
 
     header {
       text-align: center;
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
     }
 
     h1 {
@@ -40,18 +41,18 @@
 
     .card {
       width: 100%;
-      max-width: 600px;
+      max-width: 520px;
       background: #161b22;
       border: 1px solid #30363d;
       border-radius: 8px;
       padding: 1.5rem;
-      margin-bottom: 1.5rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
     }
 
-    /* Subject Selection */
+    /* Subject Selection Grid */
     .subject-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
       gap: 10px;
       margin-top: 1rem;
     }
@@ -66,6 +67,7 @@
       cursor: pointer;
       transition: all 0.2s ease;
       text-align: center;
+      font-size: 0.85rem;
     }
 
     .subject-btn:hover {
@@ -76,7 +78,7 @@
     /* Question Box */
     .question-box {
       display: none;
-      margin-top: 1.5rem;
+      margin-top: 1.25rem;
       background: #0d1117;
       padding: 1rem;
       border-radius: 6px;
@@ -87,6 +89,7 @@
       font-weight: 600;
       margin-bottom: 1rem;
       color: #f0f6fc;
+      font-size: 0.95rem;
     }
 
     .options-list {
@@ -120,11 +123,12 @@
       background: #238636;
       color: #fff;
       border: none;
-      padding: 0.6rem 1.2rem;
+      padding: 0.65rem 1.2rem;
       border-radius: 6px;
       font-weight: 600;
       cursor: pointer;
       width: 100%;
+      font-size: 0.95rem;
     }
 
     .action-btn:hover {
@@ -133,38 +137,94 @@
 
     .error-msg {
       color: #f85149;
-      margin-top: 0.5rem;
+      margin-top: 0.75rem;
       font-weight: bold;
+      font-size: 0.85rem;
       display: none;
+      text-align: center;
     }
 
-    /* System Dashboard (Unlocked Area) */
+    /* Loading Screen Screen */
+    #loading-screen {
+      display: none;
+      text-align: center;
+      padding: 2rem 1rem;
+    }
+
+    .access-granted {
+      color: #56d364;
+      font-size: 1.25rem;
+      font-weight: bold;
+      letter-spacing: 1px;
+      margin-bottom: 0.5rem;
+    }
+
+    .redirect-text {
+      color: #8b949e;
+      font-size: 0.85rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      height: 10px;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background: #238636;
+      transition: width 0.05s linear;
+    }
+
+    /* System Control Dashboard */
     #dashboard {
       display: none;
     }
 
+    .dash-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #30363d;
+      padding-bottom: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .dash-title {
+      color: #58a6ff;
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+
     .status-badge {
       display: inline-block;
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 0.85rem;
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-size: 0.75rem;
       font-weight: bold;
-      margin-left: 8px;
+      margin-left: 6px;
     }
 
     .status-off { background: #30363d; color: #8b949e; }
     .status-on { background: #238636; color: #7ee787; }
 
+    .control-block {
+      background: #0d1117;
+      border: 1px solid #21262d;
+      padding: 1rem;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+    }
+
     .control-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 0.75rem 0;
-      border-bottom: 1px solid #21262d;
-    }
-
-    .control-row:last-child {
-      border-bottom: none;
     }
 
     .toggle-btn {
@@ -175,33 +235,51 @@
       border-radius: 6px;
       font-weight: 600;
       cursor: pointer;
+      font-size: 0.85rem;
     }
 
     .toggle-btn.active {
       background: #da3633;
     }
 
-    .align-grid {
-      display: flex;
+    /* Grid for Stats & Extras */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 10px;
-      margin-top: 0.5rem;
+      margin-bottom: 1rem;
     }
 
-    .align-btn {
-      flex: 1;
-      background: #21262d;
-      border: 1px solid #30363d;
-      color: #c9d1d9;
-      padding: 0.5rem;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.85rem;
+    .metric-card {
+      background: #0d1117;
+      border: 1px solid #21262d;
+      padding: 0.75rem;
+      border-radius: 6px;
+      text-align: center;
     }
 
-    .align-btn.selected {
-      border-color: #58a6ff;
-      color: #58a6ff;
-      background: #161b22;
+    .metric-val {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: #f0f6fc;
+      margin-top: 4px;
+    }
+
+    .metric-lbl {
+      font-size: 0.75rem;
+      color: #8b949e;
+    }
+
+    .console-log {
+      background: #0d1117;
+      border: 1px solid #21262d;
+      padding: 0.75rem;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 0.75rem;
+      color: #79c0ff;
+      height: 80px;
+      overflow-y: auto;
     }
   </style>
 </head>
@@ -209,12 +287,12 @@
 
   <header>
     <h1>Access Control Portal</h1>
-    <p class="subtitle">Answer one verification question to unlock system tools.</p>
+    <p class="subtitle">Complete verification to initialize system tools</p>
   </header>
 
-  <!-- Verification Card -->
+  <!-- Step 1: Verification Card -->
   <div class="card" id="quiz-card">
-    <h3>Select Subject</h3>
+    <h3 style="font-size: 1rem; color: #c9d1d9;">Select Subject</h3>
     <div class="subject-grid">
       <button class="subject-btn" onclick="selectSubject('electives')">Electives</button>
       <button class="subject-btn" onclick="selectSubject('math')">Math</button>
@@ -231,29 +309,52 @@
     </div>
   </div>
 
-  <!-- Unlocked System Dashboard -->
-  <div class="card" id="dashboard">
-    <h3 style="color: #56d364; margin-bottom: 1rem;">System Unlocked</h3>
+  <!-- Step 2: Access Granted / Redirecting Bar -->
+  <div class="card" id="loading-screen">
+    <div class="access-granted">ACCESS GRANTED</div>
+    <div class="redirect-text">Redirecting to System Dashboard...</div>
+    <div class="progress-bar-container">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+  </div>
 
-    <!-- Keep Awake Tool -->
-    <div class="control-row">
-      <div>
-        <strong>Keep Awake Engine</strong>
-        <span class="status-badge status-off" id="awake-status">OFF</span>
-        <div style="font-size: 0.8rem; color: #8b949e; margin-top: 2px;">Prevents screen dimming & sleep mode</div>
-      </div>
-      <button class="toggle-btn" id="awake-btn" onclick="toggleKeepAwake()">Enable</button>
+  <!-- Step 3: Fully Loaded Dashboard -->
+  <div class="card" id="dashboard">
+    <div class="dash-header">
+      <span class="dash-title">System Dashboard</span>
+      <span style="font-size: 0.8rem; color: #56d364; font-weight: bold;">● CONNECTED</span>
     </div>
 
-    <!-- Layout & Alignment Controls -->
-    <div style="margin-top: 1.5rem;">
-      <strong>Dashboard Alignment</strong>
-      <div style="font-size: 0.8rem; color: #8b949e; margin-bottom: 0.5rem;">Arrange workspace elements</div>
-      <div class="align-grid">
-        <button class="align-btn selected" onclick="setAlignment('center', this)">Centered</button>
-        <button class="align-btn" onclick="setAlignment('flex-start', this)">Left Align</button>
-        <button class="align-btn" onclick="setAlignment('flex-end', this)">Right Align</button>
+    <!-- Keep Awake Primary Engine -->
+    <div class="control-block">
+      <div class="control-row">
+        <div>
+          <strong style="font-size: 0.95rem;">Keep Awake Engine</strong>
+          <span class="status-badge status-off" id="awake-status">OFF</span>
+          <div style="font-size: 0.8rem; color: #8b949e; margin-top: 4px;">Prevents display timeout & system sleep</div>
+        </div>
+        <button class="toggle-btn" id="awake-btn" onclick="toggleKeepAwake()">Enable</button>
       </div>
+    </div>
+
+    <!-- Live System Metrics -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-lbl">SESSION TIME</div>
+        <div class="metric-val" id="timer-val">00:00</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-lbl">SYSTEM STATUS</div>
+        <div class="metric-val" style="color: #56d364;">OPTIMAL</div>
+      </div>
+    </div>
+
+    <!-- Real-Time Activity Log -->
+    <div style="font-size: 0.8rem; color: #8b949e; margin-bottom: 6px; font-weight: bold;">SYSTEM CONSOLE</div>
+    <div class="console-log" id="console-log">
+      <div>[SYS] Authentication verified.</div>
+      <div>[SYS] AccessGrantedException cleared.</div>
+      <div>[SYS] Dashboard initialized successfully.</div>
     </div>
   </div>
 
@@ -288,6 +389,7 @@
 
     let currentQuestion = null;
     let wakeLock = null;
+    let secondsElapsed = 0;
 
     function selectSubject(subjectKey) {
       const pool = questionBank[subjectKey];
@@ -313,13 +415,30 @@
     function verifyAnswer() {
       const selected = document.querySelector('input[name="quiz-opt"]:checked');
       if (selected && parseInt(selected.value) === currentQuestion.ans) {
-        // Correct Answer -> Unlock Dashboard
+        // Correct Answer -> Trigger Redirect Sequence
         document.getElementById('quiz-card').style.display = 'none';
-        document.getElementById('dashboard').style.display = 'block';
+        document.getElementById('loading-screen').style.display = 'block';
+        startRedirectSequence();
       } else {
-        // Incorrect Answer
         document.getElementById('error-msg').style.display = 'block';
       }
+    }
+
+    function startRedirectSequence() {
+      const progressBar = document.getElementById('progress-bar');
+      let progress = 0;
+
+      const interval = setInterval(() => {
+        progress += 5;
+        progressBar.style.width = progress + '%';
+
+        if (progress >= 100) {
+          clearInterval(interval);
+          document.getElementById('loading-screen').style.display = 'none';
+          document.getElementById('dashboard').style.display = 'block';
+          startSessionTimer();
+        }
+      }, 50);
     }
 
     async function toggleKeepAwake() {
@@ -334,11 +453,12 @@
             status.className = 'status-badge status-on';
             btn.innerText = 'Disable';
             btn.classList.add('active');
+            logConsole('[WAKE_LOCK] Screen keep-awake active.');
           } else {
             alert('Screen Wake Lock API is not supported in this browser.');
           }
         } catch (err) {
-          console.error(err);
+          logConsole('[ERROR] Wake Lock request failed.');
         }
       } else {
         wakeLock.release().then(() => {
@@ -347,14 +467,26 @@
           status.className = 'status-badge status-off';
           btn.innerText = 'Enable';
           btn.classList.remove('active');
+          logConsole('[WAKE_LOCK] Screen keep-awake disabled.');
         });
       }
     }
 
-    function setAlignment(position, btn) {
-      document.body.style.alignItems = position;
-      document.querySelectorAll('.align-btn').forEach(b => b.classList.remove('selected'));
-      btn.classList.add('selected');
+    function startSessionTimer() {
+      setInterval(() => {
+        secondsElapsed++;
+        const mins = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+        const secs = String(secondsElapsed % 60).padStart(2, '0');
+        document.getElementById('timer-val').innerText = `${mins}:${secs}`;
+      }, 1000);
+    }
+
+    function logConsole(msg) {
+      const consoleBox = document.getElementById('console-log');
+      const div = document.createElement('div');
+      div.innerText = msg;
+      consoleBox.appendChild(div);
+      consoleBox.scrollTop = consoleBox.scrollHeight;
     }
   </script>
 
