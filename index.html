@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>System Monitor & Keep-Awake</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background-color: #0b0f19;
+      color: #e2e8f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Background glow effect */
+    .bg-glow {
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.12) 0%, rgba(0, 0, 0, 0) 70%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Loader screen */
+    #loader {
+      position: fixed;
+      inset: 0;
+      background-color: #0b0f19;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 99;
+      transition: opacity 0.5s ease, visibility 0.5s ease;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 3px solid #1e293b;
+      border-top: 3px solid #38bdf8;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 1.5rem;
+    }
+
+    .loader-text {
+      font-size: 0.9rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #94a3b8;
+    }
+
+    /* Main Dashboard Card */
+    .card {
+      position: relative;
+      z-index: 1;
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 16px;
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+      text-align: center;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #1f2937;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      color: #9ca3af;
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.5px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #ef4444; /* Red when off */
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .status-dot.active {
+      background-color: #22c55e; /* Green when active */
+      box-shadow: 0 0 10px #22c55e;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #f8fafc;
+    }
+
+    p.subtitle {
+      font-size: 0.85rem;
+      color: #64748b;
+      margin-bottom: 2rem;
+      line-height: 1.4;
+    }
+
+    /* Big Toggle Switch */
+    .toggle-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 70px;
+      height: 38px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background-color: #334155;
+      transition: 0.3s ease;
+      border-radius: 38px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 30px;
+      width: 30px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: 0.3s ease;
+      border-radius: 50%;
+    }
+
+    input:checked + .slider {
+      background-color: #0284c7;
+      box-shadow: 0 0 15px rgba(2, 132, 199, 0.4);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(32px);
+    }
+
+    .toggle-label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #94a3b8;
+      transition: color 0.3s ease;
+    }
+
+    .toggle-label.active {
+      color: #38bdf8;
+    }
+
+    /* Hidden video element for background loop */
+    video {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0.01;
+      pointer-events: none;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-glow"></div>
+
+  <!-- Loading Overlay -->
+  <div id="loader">
+    <div class="spinner"></div>
+    <div class="loader-text">Initializing Engine...</div>
+  </div>
+
+  <!-- Dashboard Interface -->
+  <div class="card">
+    <div class="status-badge">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="status-text">SYSTEM STANDBY</span>
+    </div>
+
+    <h1>Keep-Awake Shield</h1>
+    <p class="subtitle">Prevents automatic display sleep and idle lock timeouts when active in background.</p>
+
+    <div class="toggle-container">
+      <label class="switch">
+        <input type="checkbox" id="awake-toggle" onchange="toggleKeepAwake(this)">
+        <span class="slider"></span>
+      </label>
+      <span class="toggle-label" id="toggle-label">KEEP AWAKE: OFF</span>
+    </div>
+  </div>
+
+  <!-- Silent background video loop -->
+  <video id="awake-video" loop muted playsinline>
+    <source src="https://raw.githubusercontent.com/bower-media-samples/big-buck-bunny/master/big-buck-bunny-480p-30sec.mp4" type="video/mp4" />
+  </video>
+
+  <script>
+    let wakeLock = null;
+    const video = document.getElementById('awake-video');
+
+    // Simulate startup loading sequence
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        const loader = document.getElementById('loader');
+        loader.style.opacity = '0';
+        loader.style.visibility = 'hidden';
+      }, 1200); // Loads after 1.2 seconds
+    });
+
+    // Toggle Keep Awake functionality
+    async function toggleKeepAwake(element) {
+      const statusDot = document.getElementById('status-dot');
+      const statusText = document.getElementById('status-text');
+      const toggleLabel = document.getElementById('toggle-label');
+
+      if (element.checked) {
+        // Turn ON
+        statusDot.classList.add('active');
+        statusText.innerText = 'SHIELD ACTIVE';
+        toggleLabel.innerText = 'KEEP AWAKE: ON';
+        toggleLabel.classList.add('active');
+
+        // Play video loop
+        video.play().catch(() => {});
+
+        // Request Screen Wake Lock API
+        requestWakeLock();
+      } else {
+        // Turn OFF
+        statusDot.classList.remove('active');
+        statusText.innerText = 'SYSTEM STANDBY';
+        toggleLabel.innerText = 'KEEP AWAKE: OFF';
+        toggleLabel.classList.remove('active');
+
+        video.pause();
+        releaseWakeLock();
+      }
+    }
+
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch (err) {
+        console.log('Wake Lock Error:', err);
+      }
+    }
+
+    function releaseWakeLock() {
+      if (wakeLock !== null) {
+        wakeLock.release().then(() => {
+          wakeLock = null;
+        });
+      }
+    }
+
+    // Re-trigger wake lock if tab is refocused
+    document.addEventListener('visibilitychange', () => {
+      const toggle = document.getElementById('awake-toggle');
+      if (document.visibilityState === 'visible' && toggle.checked) {
+        requestWakeLock();
+      }
+    });
+  </script>
+</body>
+</html>
