@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Study Portal & Practice Quiz</title>
+  <title>Student Portal & System Control</title>
   <style>
     * {
       box-sizing: border-box;
@@ -38,22 +38,30 @@
       font-size: 0.95rem;
     }
 
-    /* Subject Selection Grid */
+    .card {
+      width: 100%;
+      max-width: 600px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Subject Selection */
     .subject-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 12px;
-      width: 100%;
-      max-width: 700px;
-      margin-bottom: 2rem;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 10px;
+      margin-top: 1rem;
     }
 
     .subject-btn {
-      background: #161b22;
+      background: #21262d;
       border: 1px solid #30363d;
       color: #f0f6fc;
-      padding: 1rem 0.5rem;
-      border-radius: 8px;
+      padding: 0.75rem 0.5rem;
+      border-radius: 6px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
@@ -61,53 +69,23 @@
     }
 
     .subject-btn:hover {
-      background: #21262d;
+      background: #30363d;
       border-color: #58a6ff;
-      transform: translateY(-2px);
     }
 
-    .subject-btn.active {
-      background: #1f6beb;
-      border-color: #58a6ff;
-      color: #ffffff;
-    }
-
-    /* Quiz Container */
-    .quiz-container {
-      width: 100%;
-      max-width: 700px;
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      padding: 1.5rem;
+    /* Question Box */
+    .question-box {
       display: none;
-    }
-
-    .quiz-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid #30363d;
-      padding-bottom: 0.75rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .quiz-title {
-      font-size: 1.25rem;
-      color: #58a6ff;
-    }
-
-    .question-block {
-      margin-bottom: 1.5rem;
+      margin-top: 1.5rem;
       background: #0d1117;
       padding: 1rem;
       border-radius: 6px;
-      border: 1px solid #21262d;
+      border: 1px solid #30363d;
     }
 
     .question-text {
       font-weight: 600;
-      margin-bottom: 0.75rem;
+      margin-bottom: 1rem;
       color: #f0f6fc;
     }
 
@@ -122,12 +100,11 @@
       align-items: center;
       gap: 10px;
       background: #161b22;
-      padding: 8px 12px;
+      padding: 10px;
       border-radius: 4px;
       border: 1px solid #30363d;
       cursor: pointer;
       font-size: 0.9rem;
-      transition: background 0.15s;
     }
 
     .option-label:hover {
@@ -138,14 +115,8 @@
       accent-color: #1f6beb;
     }
 
-    .quiz-actions {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    .action-btn {
       margin-top: 1rem;
-    }
-
-    .submit-btn {
       background: #238636;
       color: #fff;
       border: none;
@@ -153,189 +124,237 @@
       border-radius: 6px;
       font-weight: 600;
       cursor: pointer;
+      width: 100%;
     }
 
-    .submit-btn:hover {
+    .action-btn:hover {
       background: #2ea043;
     }
 
-    .results {
+    .error-msg {
+      color: #f85149;
+      margin-top: 0.5rem;
       font-weight: bold;
-      font-size: 1.1rem;
+      display: none;
     }
 
-    .results.good { color: #56d364; }
-    .results.bad { color: #f85149; }
+    /* System Dashboard (Unlocked Area) */
+    #dashboard {
+      display: none;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      margin-left: 8px;
+    }
+
+    .status-off { background: #30363d; color: #8b949e; }
+    .status-on { background: #238636; color: #7ee787; }
+
+    .control-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid #21262d;
+    }
+
+    .control-row:last-child {
+      border-bottom: none;
+    }
+
+    .toggle-btn {
+      background: #1f6beb;
+      color: #fff;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .toggle-btn.active {
+      background: #da3633;
+    }
+
+    .align-grid {
+      display: flex;
+      gap: 10px;
+      margin-top: 0.5rem;
+    }
+
+    .align-btn {
+      flex: 1;
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #c9d1d9;
+      padding: 0.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    .align-btn.selected {
+      border-color: #58a6ff;
+      color: #58a6ff;
+      background: #161b22;
+    }
   </style>
 </head>
 <body>
 
   <header>
-    <h1>Student Quiz Portal</h1>
-    <p class="subtitle">Select a subject below to generate five random practice questions.</p>
+    <h1>Access Control Portal</h1>
+    <p class="subtitle">Answer one verification question to unlock system tools.</p>
   </header>
 
-  <!-- Subject Buttons -->
-  <div class="subject-grid">
-    <button class="subject-btn" onclick="loadSubject('electives', this)">Electives</button>
-    <button class="subject-btn" onclick="loadSubject('math', this)">Math</button>
-    <button class="subject-btn" onclick="loadSubject('science', this)">Science</button>
-    <button class="subject-btn" onclick="loadSubject('ela', this)">ELA</button>
-    <button class="subject-btn" onclick="loadSubject('civics', this)">Civics / History</button>
-  </div>
-
-  <!-- Quiz Box -->
-  <div class="quiz-container" id="quiz-container">
-    <div class="quiz-header">
-      <h2 class="quiz-title" id="quiz-title">Subject Quiz</h2>
-      <button class="subject-btn" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="refreshCurrentQuiz()">New Questions 🔄</button>
+  <!-- Verification Card -->
+  <div class="card" id="quiz-card">
+    <h3>Select Subject</h3>
+    <div class="subject-grid">
+      <button class="subject-btn" onclick="selectSubject('electives')">Electives</button>
+      <button class="subject-btn" onclick="selectSubject('math')">Math</button>
+      <button class="subject-btn" onclick="selectSubject('science')">Science</button>
+      <button class="subject-btn" onclick="selectSubject('ela')">ELA</button>
+      <button class="subject-btn" onclick="selectSubject('civics')">Civics</button>
     </div>
 
-    <div id="questions-list"></div>
+    <div class="question-box" id="question-box">
+      <div class="question-text" id="question-text"></div>
+      <div class="options-list" id="options-list"></div>
+      <button class="action-btn" onclick="verifyAnswer()">Verify Access</button>
+      <div class="error-msg" id="error-msg">Incorrect answer. Try another question!</div>
+    </div>
+  </div>
 
-    <div class="quiz-actions">
-      <button class="submit-btn" onclick="checkAnswers()">Submit Answers</button>
-      <div class="results" id="quiz-results"></div>
+  <!-- Unlocked System Dashboard -->
+  <div class="card" id="dashboard">
+    <h3 style="color: #56d364; margin-bottom: 1rem;">System Unlocked</h3>
+
+    <!-- Keep Awake Tool -->
+    <div class="control-row">
+      <div>
+        <strong>Keep Awake Engine</strong>
+        <span class="status-badge status-off" id="awake-status">OFF</span>
+        <div style="font-size: 0.8rem; color: #8b949e; margin-top: 2px;">Prevents screen dimming & sleep mode</div>
+      </div>
+      <button class="toggle-btn" id="awake-btn" onclick="toggleKeepAwake()">Enable</button>
+    </div>
+
+    <!-- Layout & Alignment Controls -->
+    <div style="margin-top: 1.5rem;">
+      <strong>Dashboard Alignment</strong>
+      <div style="font-size: 0.8rem; color: #8b949e; margin-bottom: 0.5rem;">Arrange workspace elements</div>
+      <div class="align-grid">
+        <button class="align-btn selected" onclick="setAlignment('center', this)">Centered</button>
+        <button class="align-btn" onclick="setAlignment('flex-start', this)">Left Align</button>
+        <button class="align-btn" onclick="setAlignment('flex-end', this)">Right Align</button>
+      </div>
     </div>
   </div>
 
   <script>
-    // Question Bank with random options per subject
     const questionBank = {
       electives: [
-        { q: "In digital art, what key command is universally used to 'Undo' an action?", opts: ["Ctrl + Z", "Ctrl + C", "Ctrl + P", "Ctrl + Alt + Del"], ans: 0 },
-        { q: "Which primary color is mixed with blue to create purple?", opts: ["Yellow", "Red", "Green", "Orange"], ans: 1 },
-        { q: "In physical education, what does 'cardio' exercise mainly target?", opts: ["Muscles", "Bones", "Heart & Lungs", "Flexibility"], ans: 2 },
-        { q: "What is the standard unit of tempo in music?", opts: ["BPM (Beats Per Minute)", "FPS", "Decibels", "Pitch"], ans: 0 },
-        { q: "In theater, what is the area behind the stage called?", opts: ["The Pit", "Offstage", "Backstage", "The Apron"], ans: 2 },
-        { q: "In Spanish, how do you say 'Hello'?", opts: ["Gracias", "Hola", "Adiós", "Por favor"], ans: 1 },
-        { q: "In photography, what does the rule of thirds help with?", opts: ["Focus", "Composition", "Lighting", "Color balance"], ans: 1 },
-        { q: "Which tool is commonly used to model simple 3D shapes online?", opts: ["Tinkercad", "Word", "Excel", "Photoshop"], ans: 0 }
+        { q: "In digital art, what key shortcut is used to 'Undo'?", opts: ["Ctrl + Z", "Ctrl + C", "Ctrl + P"], ans: 0 },
+        { q: "In music, what does BPM stand for?", opts: ["Beats Per Minute", "Bass Per Measure", "Bits Per Mark"], ans: 0 },
+        { q: "Which tool is commonly used for simple 3D design online?", opts: ["Tinkercad", "Excel", "Word"], ans: 0 }
       ],
       math: [
-        { q: "What is 12 × 8?", opts: ["84", "96", "104", "88"], ans: 1 },
-        { q: "What is the perimeter of a square with a side length of 5 cm?", opts: ["20 cm", "25 cm", "15 cm", "10 cm"], ans: 0 },
-        { q: "Solve for x: 2x + 4 = 12", opts: ["x = 2", "x = 3", "x = 4", "x = 6"], ans: 2 },
-        { q: "What is 15% of 100?", opts: ["10", "15", "20", "5"], ans: 1 },
-        { q: "What is the square root of 81?", opts: ["7", "8", "9", "10"], ans: 2 },
-        { q: "What is the value of 3³ (3 to the power of 3)?", opts: ["9", "18", "27", "81"], ans: 2 },
-        { q: "If a triangle has angles of 60° and 40°, what is the third angle?", opts: ["80°", "90°", "70°", "100°"], ans: 0 },
-        { q: "What is 144 ÷ 12?", opts: ["10", "11", "12", "14"], ans: 2 }
+        { q: "What is 12 × 8?", opts: ["84", "96", "104"], ans: 1 },
+        { q: "What is the square root of 81?", opts: ["7", "8", "9"], ans: 2 },
+        { q: "What is 144 ÷ 12?", opts: ["10", "12", "14"], ans: 1 }
       ],
       science: [
-        { q: "What planet is known as the Red Planet?", opts: ["Venus", "Mars", "Jupiter", "Saturn"], ans: 1 },
-        { q: "What state of matter is water vapor?", opts: ["Solid", "Liquid", "Gas", "Plasma"], ans: 2 },
-        { q: "What organ pumps blood throughout the human body?", opts: ["Brain", "Lungs", "Heart", "Liver"], ans: 2 },
-        { q: "What process do plants use to make food using sunlight?", opts: ["Respiration", "Photosynthesis", "Evaporation", "Digestion"], ans: 1 },
-        { q: "What force pulls objects toward the center of the Earth?", opts: ["Friction", "Magnetism", "Gravity", "Inertia"], ans: 2 },
-        { q: "What chemical symbol represents water?", opts: ["CO2", "H2O", "O2", "NaCl"], ans: 1 },
-        { q: "Which center part of an atom holds protons and neutrons?", opts: ["Nucleus", "Electron cloud", "Orbit", "Cell"], ans: 0 },
-        { q: "What is the basic unit of life in living organisms?", opts: ["Tissue", "Organ", "Cell", "Molecule"], ans: 2 }
+        { q: "What planet is known as the Red Planet?", opts: ["Venus", "Mars", "Jupiter"], ans: 1 },
+        { q: "What chemical symbol represents water?", opts: ["CO2", "H2O", "NaCl"], ans: 1 },
+        { q: "What force pulls objects toward Earth?", opts: ["Friction", "Gravity", "Magnetism"], ans: 1 }
       ],
       ela: [
-        { q: "Which word is a noun in the sentence: 'The quick dog ran fast'?", opts: ["Quick", "Dog", "Ran", "Fast"], ans: 1 },
-        { q: "What type of punctuation ends an interrogative sentence?", opts: ["Period", "Exclamation mark", "Question mark", "Comma"], ans: 2 },
-        { q: "Which of these is an example of an antonym for 'hot'?", opts: ["Warm", "Boiling", "Cold", "Spicy"], ans: 2 },
-        { q: "What figure of speech compares two things using 'like' or 'as'?", opts: ["Metaphor", "Simile", "Personification", "Hyperbole"], ans: 1 },
-        { q: "What is the main character in a story called?", opts: ["Protagonist", "Antagonist", "Narrator", "Extra"], ans: 0 },
-        { q: "Which word is spelled correctly?", opts: ["Definately", "Definitely", "Definitly", "Defanitely"], ans: 1 },
-        { q: "What tense is the sentence: 'She will walk to school tomorrow'?", opts: ["Past", "Present", "Future", "Perfect"], ans: 2 },
-        { q: "What is a word that describes a verb called?", opts: ["Noun", "Adjective", "Adverb", "Preposition"], ans: 2 }
+        { q: "Which word is a noun in: 'The quick dog ran'?", opts: ["Quick", "Dog", "Ran"], ans: 1 },
+        { q: "What punctuation ends a question?", opts: ["Period", "Question mark", "Exclamation mark"], ans: 1 },
+        { q: "What figure of speech uses 'like' or 'as'?", opts: ["Metaphor", "Simile", "Hyperbole"], ans: 1 }
       ],
       civics: [
-        { q: "Who was the first President of the United States?", opts: ["Thomas Jefferson", "George Washington", "Abraham Lincoln", "John Adams"], ans: 1 },
-        { q: "How many branches are in the U.S. government?", opts: ["2", "3", "4", "5"], ans: 1 },
-        { q: "What is the supreme law of the land in the United States?", opts: ["The Declaration of Independence", "The Constitution", "The Emancipation Proclamation", "The Bill of Rights"], ans: 1 },
-        { q: "In what month do U.S. citizens vote for President?", opts: ["October", "November", "December", "January"], ans: 1 },
-        { q: "How many senators does each U.S. state have?", opts: ["1", "2", "4", "Based on population"], ans: 1 },
-        { q: "Which branch of government makes the laws?", opts: ["Executive", "Legislative", "Judicial", "Military"], ans: 1 },
-        { q: "What key document declared independence from Great Britain in 1776?", opts: ["The Constitution", "The Declaration of Independence", "The Articles of Confederation", "The Federalist Papers"], ans: 1 },
-        { q: "How long is one term for a U.S. President?", opts: ["2 years", "4 years", "6 years", "8 years"], ans: 1 }
+        { q: "Who was the first President of the United States?", opts: ["George Washington", "Thomas Jefferson", "Abraham Lincoln"], ans: 0 },
+        { q: "How many branches are in the U.S. government?", opts: ["2", "3", "4"], ans: 1 },
+        { q: "How long is one term for a U.S. President?", opts: ["2 years", "4 years", "6 years"], ans: 1 }
       ]
     };
 
-    let currentSubjectKey = '';
-    let currentQuestions = [];
+    let currentQuestion = null;
+    let wakeLock = null;
 
-    function loadSubject(subjectKey, btnElement) {
-      currentSubjectKey = subjectKey;
+    function selectSubject(subjectKey) {
+      const pool = questionBank[subjectKey];
+      currentQuestion = pool[Math.floor(Math.random() * pool.length)];
 
-      // Highlight active subject button
-      document.querySelectorAll('.subject-btn').forEach(btn => btn.classList.remove('active'));
-      if (btnElement) btnElement.classList.add('active');
+      document.getElementById('error-msg').style.display = 'none';
+      document.getElementById('question-box').style.display = 'block';
+      document.getElementById('question-text').innerText = currentQuestion.q;
 
-      const subjectNames = {
-        electives: "Electives",
-        math: "Math",
-        science: "Science",
-        ela: "English Language Arts (ELA)",
-        civics: "Civics & History"
-      };
+      const optsContainer = document.getElementById('options-list');
+      optsContainer.innerHTML = '';
 
-      document.getElementById('quiz-title').innerText = subjectNames[subjectKey] + " Quiz";
-      document.getElementById('quiz-container').style.display = 'block';
-      document.getElementById('quiz-results').innerText = '';
-
-      generateQuiz();
-    }
-
-    function refreshCurrentQuiz() {
-      if (currentSubjectKey) {
-        document.getElementById('quiz-results').innerText = '';
-        generateQuiz();
-      }
-    }
-
-    function generateQuiz() {
-      const fullPool = questionBank[currentSubjectKey];
-      // Shuffle array and pick 5 random questions
-      const shuffled = [...fullPool].sort(() => 0.5 - Math.random());
-      currentQuestions = shuffled.slice(0, 5);
-
-      const listContainer = document.getElementById('questions-list');
-      listContainer.innerHTML = '';
-
-      currentQuestions.forEach((qObj, index) => {
-        const qDiv = document.createElement('div');
-        qDiv.className = 'question-block';
-
-        let optionsHtml = '';
-        qObj.opts.forEach((optText, optIdx) => {
-          optionsHtml += `
-            <label class="option-label">
-              <input type="radio" name="q_${index}" value="${optIdx}">
-              ${optText}
-            </label>
-          `;
-        });
-
-        qDiv.innerHTML = `
-          <div class="question-text">${index + 1}. ${qObj.q}</div>
-          <div class="options-list">${optionsHtml}</div>
+      currentQuestion.opts.forEach((opt, idx) => {
+        optsContainer.innerHTML += `
+          <label class="option-label">
+            <input type="radio" name="quiz-opt" value="${idx}">
+            ${opt}
+          </label>
         `;
-
-        listContainer.appendChild(qDiv);
       });
     }
 
-    function checkAnswers() {
-      let score = 0;
-
-      currentQuestions.forEach((qObj, index) => {
-        const selected = document.querySelector(`input[name="q_${index}"]:checked`);
-        if (selected && parseInt(selected.value) === qObj.ans) {
-          score++;
-        }
-      });
-
-      const resultsDiv = document.getElementById('quiz-results');
-      resultsDiv.innerText = `Score: ${score} / 5`;
-
-      if (score >= 4) {
-        resultsDiv.className = 'results good';
+    function verifyAnswer() {
+      const selected = document.querySelector('input[name="quiz-opt"]:checked');
+      if (selected && parseInt(selected.value) === currentQuestion.ans) {
+        // Correct Answer -> Unlock Dashboard
+        document.getElementById('quiz-card').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
       } else {
-        resultsDiv.className = 'results bad';
+        // Incorrect Answer
+        document.getElementById('error-msg').style.display = 'block';
       }
+    }
+
+    async function toggleKeepAwake() {
+      const btn = document.getElementById('awake-btn');
+      const status = document.getElementById('awake-status');
+
+      if (!wakeLock) {
+        try {
+          if ('wakeLock' in navigator) {
+            wakeLock = await navigator.wakeLock.request('screen');
+            status.innerText = 'ACTIVE';
+            status.className = 'status-badge status-on';
+            btn.innerText = 'Disable';
+            btn.classList.add('active');
+          } else {
+            alert('Screen Wake Lock API is not supported in this browser.');
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      } else {
+        wakeLock.release().then(() => {
+          wakeLock = null;
+          status.innerText = 'OFF';
+          status.className = 'status-badge status-off';
+          btn.innerText = 'Enable';
+          btn.classList.remove('active');
+        });
+      }
+    }
+
+    function setAlignment(position, btn) {
+      document.body.style.alignItems = position;
+      document.querySelectorAll('.align-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
     }
   </script>
 
