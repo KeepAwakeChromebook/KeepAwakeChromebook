@@ -72,7 +72,7 @@
       display: grid;
       grid-template-columns: 220px 1fr;
       flex: 1;
-      height: calc(100vh - 38px - 160px);
+      height: calc(100vh - 38px - 180px);
     }
 
     /* Sidebar File Explorer */
@@ -140,7 +140,7 @@
 
     /* Bottom Terminal Section */
     .bottom-terminal {
-      height: 160px;
+      height: 180px;
       background: #161b22;
       border-top: 1px solid #21262d;
       display: flex;
@@ -169,6 +169,7 @@
     .log.sys { color: #79c0ff; }
     .log.success { color: #56d364; }
     .log.warn { color: #e3b341; }
+    .log.fail { color: #ff7b72; }
 
     video {
       position: absolute;
@@ -225,7 +226,7 @@
         <div><span class="cm">// Intercept idle timeouts continuously</span></div>
         <div><span class="fn">setInterval</span>(() => {</div>
         <div>&nbsp;&nbsp;engine.<span class="fn">pingThread</span>({ <span class="num">keepAwake: true</span> });</div>
-        <div>}, <span class="num">5000</span>);</div>
+        <div>}, <span class="num">1500</span>);</div>
       </div>
 
       <!-- Animated Cyber Canvas -->
@@ -261,6 +262,29 @@
     
     let engineRunning = false;
     let wakeLock = null;
+    let logInterval = null;
+
+    // Bank of randomized system commands, errors, and startup steps
+    const randomSystemLogs = [
+      { text: "EXECUTING: SYS_EXEC_THREAD_ALPHA", type: "sys" },
+      { text: "SYSTEM FAIL: UNHANDLED_EXCEPTION AT 0x004F", type: "fail" },
+      { text: "RENDERING: DATA_PIPELINE_FRAME_60", type: "sys" },
+      { text: "WARNING: RETRYING_CONNECTION (ATTEMPT 3/5)", type: "warn" },
+      { text: "STARTUP: BOOTSTRAPPING_ENVIRONMENT", type: "sys" },
+      { text: "RUNNING: MEMORY_PURGE_PROTOCOL", type: "sys" },
+      { text: "SYSTEM FAIL: BUS_READ_TIMEOUT", type: "fail" },
+      { text: "RENDERING: MATRIX_BUFFER_CANVAS", type: "sys" },
+      { text: "RETRIES_EXHAUSTED: ABORTING_OPERATION", type: "warn" },
+      { text: "STARTUP: LOADING_SECURITY_CERTIFICATES", type: "sys" },
+      { text: "EXECUTING: OVERRIDE_PROTOCOL_0", type: "warn" },
+      { text: "FATAL: CORRUPTED_SECTOR_DETECTED", type: "fail" },
+      { text: "DECRYPTING: AES_256_PAYLOAD", type: "sys" },
+      { text: "STARTUP: PROBING_HARDWARE_BUS", type: "sys" },
+      { text: "SYSTEM FAIL: STACK_OVERFLOW_EXCEPTION", type: "fail" },
+      { text: "RETRYING: SYNC_DATA_PACKETS...", type: "warn" },
+      { text: "PARSING: JSON_PAYLOAD_NODE", type: "sys" },
+      { text: "SUCCESS: CORE_SHIELD_PING_ACKNOWLEDGED", type: "success" }
+    ];
 
     // Resize Canvas
     function resizeCanvas() {
@@ -270,8 +294,8 @@
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    // Digital Rain / Node Particle Visualizer
-    const particles = Array.from({ length: 40 }, () => ({
+    // Matrix / Digital Rain Particle Canvas
+    const particles = Array.from({ length: 45 }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
       speed: 0.5 + Math.random() * 1.5,
@@ -283,7 +307,7 @@
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       particles.forEach(p => {
-        p.y += engineRunning ? p.speed * 2 : p.speed * 0.5;
+        p.y += engineRunning ? p.speed * 2.5 : p.speed * 0.5;
         if (p.y > canvas.height) p.y = 0;
 
         ctx.fillStyle = engineRunning ? '#56d364' : '#58a6ff';
@@ -305,6 +329,17 @@
       logs.scrollTop = logs.scrollHeight;
     }
 
+    function startRandomLogStream() {
+      logInterval = setInterval(() => {
+        const randomItem = randomSystemLogs[Math.floor(Math.random() * randomSystemLogs.length)];
+        addLog(randomItem.text, randomItem.type);
+      }, 1400); // Prints a new random system line every 1.4s
+    }
+
+    function stopRandomLogStream() {
+      if (logInterval) clearInterval(logInterval);
+    }
+
     async function toggleEngine() {
       const btn = document.getElementById('run-btn');
       const icon = document.getElementById('run-icon');
@@ -324,6 +359,9 @@
 
         // Request Screen Wake Lock
         requestWakeLock();
+
+        // Begin streaming random system commands & errors
+        startRandomLogStream();
       } else {
         engineRunning = false;
         btn.classList.remove('active');
@@ -332,6 +370,7 @@
 
         video.pause();
         releaseWakeLock();
+        stopRandomLogStream();
         addLog('Script execution terminated. Returning to idle.', 'warn');
       }
     }
