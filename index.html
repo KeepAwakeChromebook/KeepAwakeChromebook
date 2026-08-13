@@ -133,6 +133,43 @@
       overflow: hidden;
     }
 
+    /* Tactical HUD Overlay on Canvas */
+    .hud-overlay {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      justify-content: space-between;
+      pointer-events: none;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+    }
+
+    .hud-box {
+      background: rgba(13, 17, 23, 0.75);
+      border: 1px solid rgba(88, 166, 255, 0.3);
+      padding: 6px 10px;
+      border-radius: 4px;
+      backdrop-filter: blur(4px);
+    }
+
+    .hud-title {
+      color: #8b949e;
+      font-size: 9px;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .hud-value {
+      color: #58a6ff;
+      font-weight: bold;
+    }
+
+    .hud-alert {
+      color: #56d364;
+    }
+
     canvas {
       width: 100%;
       height: 100%;
@@ -170,6 +207,7 @@
     .log.success { color: #56d364; }
     .log.warn { color: #e3b341; }
     .log.fail { color: #ff7b72; }
+    .log.radar { color: #d2a8ff; font-weight: bold; }
 
     video {
       position: absolute;
@@ -201,7 +239,7 @@
       <div class="sidebar-title">Explorer</div>
       <div class="file-item active">📄 keep_alive_core.js</div>
       <div class="file-item">⚙️ package.json</div>
-      <div class="file-item">🛡️ system_hooks.dll</div>
+      <div class="file-item">📡 radar_loc_tracker.dll</div>
       <div class="file-item">🔒 security_policy.config</div>
     </div>
 
@@ -209,28 +247,39 @@
     <div class="editor-area">
       <!-- Pseudocode Screen -->
       <div class="code-view">
-        <div class="cm">// Initialize System Wake-Lock Matrix</div>
-        <div><span class="kw">const</span> engine = <span class="kw">require</span>(<span class="str">'@core/power-shield'</span>);</div>
-        <div><span class="kw">const</span> mediaLoop = <span class="kw">new</span> <span class="fn">BackgroundWorker</span>();</div>
+        <div class="cm">// Initialize Geo-Scanner Target Lock</div>
+        <div><span class="kw">const</span> radar = <span class="kw">require</span>(<span class="str">'@geo/satellite-sweep'</span>);</div>
+        <div><span class="kw">const</span> lock = <span class="kw">new</span> <span class="fn">TargetTracker</span>();</div>
         <br />
-        <div><span class="kw">async function</span> <span class="fn">mountShield</span>() {</div>
+        <div><span class="kw">async function</span> <span class="fn">scanSector</span>() {</div>
         <div>&nbsp;&nbsp;<span class="kw">try</span> {</div>
-        <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">await</span> mediaLoop.<span class="fn">attachStream</span>();</div>
-        <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">await</span> navigator.wakeLock.<span class="fn">request</span>(<span class="str">'screen'</span>);</div>
-        <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">print</span>(<span class="str">'Status: KEEPALIVE_ACTIVE'</span>);</div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">const</span> target = <span class="kw">await</span> radar.<span class="fn">acquireLock</span>(<span class="str">'TMS_SECTOR'</span>);</div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> (target.<span class="fn">isDetected</span>()) {</div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">print</span>(<span class="str">'LOC_LOCK: TUSKAWILLA_MIDDLE_SCHOOL'</span>);</div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
         <div>&nbsp;&nbsp;} <span class="kw">catch</span> (err) {</div>
         <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">logError</span>(err);</div>
         <div>&nbsp;&nbsp;}</div>
         <div>}</div>
         <br />
-        <div><span class="cm">// Intercept idle timeouts continuously</span></div>
+        <div><span class="cm">// Maintain continuous GPS pulse sweep</span></div>
         <div><span class="fn">setInterval</span>(() => {</div>
-        <div>&nbsp;&nbsp;engine.<span class="fn">pingThread</span>({ <span class="num">keepAwake: true</span> });</div>
-        <div>}, <span class="num">1500</span>);</div>
+        <div>&nbsp;&nbsp;radar.<span class="fn">pingBeacon</span>({ <span class="num">lat: 28.6531, lon: -81.2583</span> });</div>
+        <div>}, <span class="num">1200</span>);</div>
       </div>
 
-      <!-- Upgraded Cyber Radar / Neural Network Canvas -->
+      <!-- Upgraded Radar Canvas with Geo HUD Overlay -->
       <div class="canvas-container">
+        <div class="hud-overlay">
+          <div class="hud-box">
+            <div class="hud-title">ACTIVE SECTOR</div>
+            <div class="hud-value" id="hud-sector">SEARCHING...</div>
+          </div>
+          <div class="hud-box" style="text-align: right;">
+            <div class="hud-title">TARGET COORDINATES</div>
+            <div class="hud-value">28°39'11"N 81°15'30"W</div>
+          </div>
+        </div>
         <canvas id="matrix-canvas"></canvas>
       </div>
     </div>
@@ -241,11 +290,11 @@
     <div class="terminal-header">
       <span style="color:#f0f6fc;">TERMINAL</span>
       <span>OUTPUT</span>
-      <span>DEBUG CONSOLE</span>
+      <span>GEO-SCANNER CONSOLE</span>
     </div>
     <div class="terminal-logs" id="terminal-logs">
       <div class="log sys">[SYSTEM] IDE Environment loaded successfully.</div>
-      <div class="log sys">[SYSTEM] Press 'RUN SCRIPT' to engage screen wake locks.</div>
+      <div class="log sys">[SYSTEM] Press 'RUN SCRIPT' to engage radar sweep & screen locks.</div>
     </div>
   </div>
 
@@ -259,30 +308,25 @@
     const ctx = canvas.getContext('2d');
     const logs = document.getElementById('terminal-logs');
     const video = document.getElementById('awake-video');
+    const hudSector = document.getElementById('hud-sector');
     
     let engineRunning = false;
     let wakeLock = null;
     let logInterval = null;
     let radarAngle = 0;
+    let targetPulse = 0;
 
     const randomSystemLogs = [
+      { text: "GEO_SCANNER: INITIALIZING LOCAL SATELLITE SWEEP...", type: "sys" },
+      { text: "RADAR_ALERT: SECTOR PING ACKNOWLEDGED AT (28.6531, -81.2583)", type: "radar" },
+      { text: "TARGET DETECTED: TUSKAWILLA MIDDLE SCHOOL [LOCK_ACQUIRED]", type: "radar" },
       { text: "EXECUTING: SYS_EXEC_THREAD_ALPHA", type: "sys" },
-      { text: "SYSTEM FAIL: UNHANDLED_EXCEPTION AT 0x004F", type: "fail" },
-      { text: "RENDERING: DATA_PIPELINE_FRAME_60", type: "sys" },
-      { text: "WARNING: RETRYING_CONNECTION (ATTEMPT 3/5)", type: "warn" },
-      { text: "STARTUP: BOOTSTRAPPING_ENVIRONMENT", type: "sys" },
-      { text: "RUNNING: MEMORY_PURGE_PROTOCOL", type: "sys" },
-      { text: "SYSTEM FAIL: BUS_READ_TIMEOUT", type: "fail" },
-      { text: "RENDERING: MATRIX_BUFFER_CANVAS", type: "sys" },
-      { text: "RETRIES_EXHAUSTED: ABORTING_OPERATION", type: "warn" },
-      { text: "STARTUP: LOADING_SECURITY_CERTIFICATES", type: "sys" },
-      { text: "EXECUTING: OVERRIDE_PROTOCOL_0", type: "warn" },
-      { text: "FATAL: CORRUPTED_SECTOR_DETECTED", type: "fail" },
-      { text: "DECRYPTING: AES_256_PAYLOAD", type: "sys" },
-      { text: "STARTUP: PROBING_HARDWARE_BUS", type: "sys" },
-      { text: "SYSTEM FAIL: STACK_OVERFLOW_EXCEPTION", type: "fail" },
-      { text: "RETRYING: SYNC_DATA_PACKETS...", type: "warn" },
-      { text: "PARSING: JSON_PAYLOAD_NODE", type: "sys" },
+      { text: "SIGNAL_STRENGTH: 99.4% OPTIMAL BANDWIDTH", type: "success" },
+      { text: "RENDERING: GEO_PIPELINE_FRAME_60", type: "sys" },
+      { text: "WARNING: ATMOSPHERIC INTERFERENCE DETECTED", type: "warn" },
+      { text: "RUNNING: TUSKAWILLA_SECTOR_BEACON_PING", type: "radar" },
+      { text: "DECRYPTING: LOCAL_GRID_BEACON_PAYLOAD", type: "sys" },
+      { text: "RADAR: LOCK CONFIRMED ON TUSKAWILLA MIDDLE SCHOOL", type: "radar" },
       { text: "SUCCESS: CORE_SHIELD_PING_ACKNOWLEDGED", type: "success" }
     ];
 
@@ -333,7 +377,34 @@
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
-      // 3. Update & Draw Connected Network Nodes
+      // 3. Draw Target Reticle (Tuskawilla Middle School Target Lock)
+      if (engineRunning) {
+        targetPulse += 0.05;
+        const pulseRadius = 18 + Math.sin(targetPulse) * 4;
+        const targetX = centerX + 45;
+        const targetY = centerY - 35;
+
+        // Blinking Red/Green Target Reticle
+        ctx.strokeStyle = '#ff7b72';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(targetX, targetY, pulseRadius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Target Label Text
+        ctx.fillStyle = '#ff7b72';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText('TARGET: TUSKAWILLA MS', targetX + 25, targetY + 4);
+
+        // Crosshairs
+        ctx.strokeStyle = 'rgba(255, 123, 114, 0.6)';
+        ctx.beginPath();
+        ctx.moveTo(targetX - 25, targetY); ctx.lineTo(targetX + 25, targetY);
+        ctx.moveTo(targetX, targetY - 25); ctx.lineTo(targetX, targetY + 25);
+        ctx.stroke();
+      }
+
+      // 4. Update & Draw Connected Network Nodes
       nodes.forEach((node, i) => {
         node.x += node.vx * (engineRunning ? 1.8 : 1);
         node.y += node.vy * (engineRunning ? 1.8 : 1);
@@ -341,13 +412,11 @@
         if (node.x < 0 || node.x > canvas.width) node.vx *= -1;
         if (node.y < 0 || node.y > canvas.height) node.vy *= -1;
 
-        // Draw node
         ctx.beginPath();
         ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
         ctx.fillStyle = primaryColor;
         ctx.fill();
 
-        // Connect nearby nodes with lines
         for (let j = i + 1; j < nodes.length; j++) {
           const other = nodes[j];
           const dist = Math.hypot(node.x - other.x, node.y - other.y);
@@ -380,7 +449,7 @@
       logInterval = setInterval(() => {
         const randomItem = randomSystemLogs[Math.floor(Math.random() * randomSystemLogs.length)];
         addLog(randomItem.text, randomItem.type);
-      }, 1400);
+      }, 1300);
     }
 
     function stopRandomLogStream() {
@@ -398,7 +467,11 @@
         icon.innerText = '■';
         text.innerText = 'STOP SCRIPT';
 
-        addLog('Executing keep_alive_core.js...', 'sys');
+        hudSector.innerText = 'TUSKAWILLA_MS [LOCKED]';
+        hudSector.className = 'hud-value hud-alert';
+
+        addLog('Executing geo-radar satellite lock...', 'sys');
+        addLog('TARGET LOCK: Tuskawilla Middle School detected at 28.6531° N, 81.2583° W', 'radar');
 
         video.play().catch(() => {});
         addLog('Background worker process attached to DOM thread.', 'success');
@@ -411,10 +484,13 @@
         icon.innerText = '▶';
         text.innerText = 'RUN SCRIPT';
 
+        hudSector.innerText = 'SEARCHING...';
+        hudSector.className = 'hud-value';
+
         video.pause();
         releaseWakeLock();
         stopRandomLogStream();
-        addLog('Script execution terminated. Returning to idle.', 'warn');
+        addLog('Script execution terminated. Radar lock released.', 'warn');
       }
     }
 
