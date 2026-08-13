@@ -144,7 +144,7 @@
       text-align: center;
     }
 
-    /* Loading Screen Screen */
+    /* Loading Screen */
     #loading-screen {
       display: none;
       text-align: center;
@@ -305,7 +305,7 @@
       <div class="question-text" id="question-text"></div>
       <div class="options-list" id="options-list"></div>
       <button class="action-btn" onclick="verifyAnswer()">Verify Access</button>
-      <div class="error-msg" id="error-msg">Incorrect answer. Try another question!</div>
+      <div class="error-msg" id="error-msg">Incorrect answer. Try another subject or question!</div>
     </div>
   </div>
 
@@ -363,27 +363,45 @@
       electives: [
         { q: "In digital art, what key shortcut is used to 'Undo'?", opts: ["Ctrl + Z", "Ctrl + C", "Ctrl + P"], ans: 0 },
         { q: "In music, what does BPM stand for?", opts: ["Beats Per Minute", "Bass Per Measure", "Bits Per Mark"], ans: 0 },
-        { q: "Which tool is commonly used for simple 3D design online?", opts: ["Tinkercad", "Excel", "Word"], ans: 0 }
+        { q: "Which tool is commonly used for simple 3D design online?", opts: ["Tinkercad", "Excel", "Word"], ans: 0 },
+        { q: "Which primary color is mixed with blue to make purple?", opts: ["Yellow", "Red", "Green"], ans: 1 },
+        { q: "In theater, what is the area behind the stage called?", opts: ["The Pit", "Offstage", "Backstage"], ans: 2 },
+        { q: "In physical education, what does 'cardio' target?", opts: ["Heart & Lungs", "Flexibility", "Bones"], ans: 0 }
       ],
       math: [
         { q: "What is 12 × 8?", opts: ["84", "96", "104"], ans: 1 },
         { q: "What is the square root of 81?", opts: ["7", "8", "9"], ans: 2 },
-        { q: "What is 144 ÷ 12?", opts: ["10", "12", "14"], ans: 1 }
+        { q: "What is 144 ÷ 12?", opts: ["10", "12", "14"], ans: 1 },
+        { q: "What is 15% of 100?", opts: ["10", "15", "20"], ans: 1 },
+        { q: "Solve for x: 2x + 4 = 12", opts: ["x = 2", "x = 3", "x = 4"], ans: 2 },
+        { q: "What is the perimeter of a square with side length 5 cm?", opts: ["20 cm", "25 cm", "15 cm"], ans: 0 },
+        { q: "What is 3³ (3 to the power of 3)?", opts: ["9", "18", "27"], ans: 2 }
       ],
       science: [
         { q: "What planet is known as the Red Planet?", opts: ["Venus", "Mars", "Jupiter"], ans: 1 },
         { q: "What chemical symbol represents water?", opts: ["CO2", "H2O", "NaCl"], ans: 1 },
-        { q: "What force pulls objects toward Earth?", opts: ["Friction", "Gravity", "Magnetism"], ans: 1 }
+        { q: "What force pulls objects toward Earth?", opts: ["Friction", "Gravity", "Magnetism"], ans: 1 },
+        { q: "What state of matter is water vapor?", opts: ["Solid", "Liquid", "Gas"], ans: 2 },
+        { q: "What process do plants use to make food using sunlight?", opts: ["Respiration", "Photosynthesis", "Evaporation"], ans: 1 },
+        { q: "What organ pumps blood throughout the body?", opts: ["Brain", "Lungs", "Heart"], ans: 2 }
       ],
       ela: [
         { q: "Which word is a noun in: 'The quick dog ran'?", opts: ["Quick", "Dog", "Ran"], ans: 1 },
         { q: "What punctuation ends a question?", opts: ["Period", "Question mark", "Exclamation mark"], ans: 1 },
-        { q: "What figure of speech uses 'like' or 'as'?", opts: ["Metaphor", "Simile", "Hyperbole"], ans: 1 }
+        { q: "What figure of speech uses 'like' or 'as'?", opts: ["Metaphor", "Simile", "Hyperbole"], ans: 1 },
+        { q: "Which word is an antonym for 'hot'?", opts: ["Warm", "Boiling", "Cold"], ans: 2 },
+        { q: "What is the main character in a story called?", opts: ["Protagonist", "Antagonist", "Narrator"], ans: 0 },
+        { q: "Which word is spelled correctly?", opts: ["Definately", "Definitely", "Definitly"], ans: 1 },
+        { q: "What is a word that describes a verb?", opts: ["Noun", "Adjective", "Adverb"], ans: 2 }
       ],
       civics: [
         { q: "Who was the first President of the United States?", opts: ["George Washington", "Thomas Jefferson", "Abraham Lincoln"], ans: 0 },
         { q: "How many branches are in the U.S. government?", opts: ["2", "3", "4"], ans: 1 },
-        { q: "How long is one term for a U.S. President?", opts: ["2 years", "4 years", "6 years"], ans: 1 }
+        { q: "How long is one term for a U.S. President?", opts: ["2 years", "4 years", "6 years"], ans: 1 },
+        { q: "What is the supreme law of the land in the U.S.?", opts: ["The Declaration", "The Constitution", "The Bill of Rights"], ans: 1 },
+        { q: "In what month do U.S. citizens vote for President?", opts: ["October", "November", "December"], ans: 1 },
+        { q: "How many senators does each U.S. state have?", opts: ["1", "2", "4"], ans: 1 },
+        { q: "Which branch of government makes the laws?", opts: ["Executive", "Legislative", "Judicial"], ans: 1 }
       ]
     };
 
@@ -393,7 +411,14 @@
 
     function selectSubject(subjectKey) {
       const pool = questionBank[subjectKey];
-      currentQuestion = pool[Math.floor(Math.random() * pool.length)];
+      
+      // Ensure we don't repeat the exact same question back-to-back if clicked again
+      let selectedQ;
+      do {
+        selectedQ = pool[Math.floor(Math.random() * pool.length)];
+      } while (pool.length > 1 && currentQuestion && selectedQ.q === currentQuestion.q);
+
+      currentQuestion = selectedQ;
 
       document.getElementById('error-msg').style.display = 'none';
       document.getElementById('question-box').style.display = 'block';
