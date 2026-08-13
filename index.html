@@ -144,10 +144,11 @@
       pointer-events: none;
       font-size: 11px;
       letter-spacing: 0.5px;
+      z-index: 10;
     }
 
     .hud-box {
-      background: rgba(13, 17, 23, 0.75);
+      background: rgba(13, 17, 23, 0.85);
       border: 1px solid rgba(88, 166, 255, 0.3);
       padding: 6px 10px;
       border-radius: 4px;
@@ -210,9 +211,8 @@
     .log.sys { color: #79c0ff; }
     .log.success { color: #56d364; }
     .log.warn { color: #e3b341; }
-    .log.fail { color: #ff7b72; }
     .log.radar { color: #d2a8ff; font-weight: bold; }
-    
+
     .confirm-btn {
       background: #1f6beb;
       color: #fff;
@@ -249,7 +249,7 @@
       <div class="sidebar-title">Explorer</div>
       <div class="file-item active">📄 keep_alive_core.js</div>
       <div class="file-item">⚙️ package.json</div>
-      <div class="file-item">📡 radar_loc_tracker.dll</div>
+      <div class="file-item">📡 location_triangulator.dll</div>
       <div class="file-item">🔒 security_policy.config</div>
     </div>
 
@@ -257,15 +257,16 @@
     <div class="editor-area">
       <!-- Pseudocode Screen -->
       <div class="code-view">
-        <div class="cm">// Initialize Geo-Scanner Target Lock</div>
-        <div><span class="kw">const</span> radar = <span class="kw">require</span>(<span class="str">'@geo/satellite-sweep'</span>);</div>
-        <div><span class="kw">const</span> lock = <span class="kw">new</span> <span class="fn">TargetTracker</span>();</div>
+        <div class="cm">// Triangulate Sector & Form Tactical Lock</div>
+        <div><span class="kw">const</span> satArray = <span class="kw">require</span>(<span class="str">'@geo/satellite-triangulate'</span>);</div>
+        <div><span class="kw">const</span> targetNode = <span class="kw">new</span> <span class="fn">GeoLock</span>();</div>
         <br />
-        <div><span class="kw">async function</span> <span class="fn">scanSector</span>() {</div>
+        <div><span class="kw">async function</span> <span class="fn">initiateTriangulation</span>() {</div>
         <div>&nbsp;&nbsp;<span class="kw">try</span> {</div>
-        <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">const</span> target = <span class="kw">await</span> radar.<span class="fn">acquireLock</span>(<span class="str">'TMS_SECTOR'</span>);</div>
-        <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> (target.<span class="fn">isDetected</span>()) {</div>
-        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">print</span>(<span class="str">'LOC_LOCK: TUSKAWILLA_MIDDLE_SCHOOL'</span>);</div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">const</span> nodes = <span class="kw">await</span> satArray.<span class="fn">alignSatellites</span>(<span class="num">3</span>);</div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">const</span> lock = <span class="kw">await</span> nodes.<span class="fn">triangulate</span>(<span class="str">'TMS_CAMPUS'</span>);</div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> (lock.<span class="fn">isFormed</span>()) {</div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">print</span>(<span class="str">'LOC_LOCKED: TUSKAWILLA_MIDDLE_SCHOOL'</span>);</div>
         <div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
         <div>&nbsp;&nbsp;} <span class="kw">catch</span> (err) {</div>
         <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">logError</span>(err);</div>
@@ -274,11 +275,11 @@
         <br />
         <div><span class="cm">// Maintain continuous GPS pulse sweep</span></div>
         <div><span class="fn">setInterval</span>(() => {</div>
-        <div>&nbsp;&nbsp;radar.<span class="fn">pingBeacon</span>({ <span class="num">lat: 28.6531, lon: -81.2583</span> });</div>
+        <div>&nbsp;&nbsp;targetNode.<span class="fn">keepAlive</span>({ <span class="num">lat: 28.6531, lon: -81.2583</span> });</div>
         <div>}, <span class="num">1200</span>);</div>
       </div>
 
-      <!-- Upgraded Radar Canvas with Geo HUD Overlay -->
+      <!-- Upgraded City Triangulation Canvas -->
       <div class="canvas-container">
         <div class="hud-overlay">
           <div class="hud-box">
@@ -300,11 +301,11 @@
     <div class="terminal-header">
       <span style="color:#f0f6fc;">TERMINAL</span>
       <span>OUTPUT</span>
-      <span>GEO-SCANNER CONSOLE</span>
+      <span>TRIANGULATION CONSOLE</span>
     </div>
     <div class="terminal-logs" id="terminal-logs">
       <div class="log sys">[SYSTEM] IDE Environment loaded successfully.</div>
-      <div class="log sys">[SYSTEM] Press 'RUN SCRIPT' to engage radar sweep & screen locks.</div>
+      <div class="log sys">[SYSTEM] Press 'RUN SCRIPT' to initiate system keep-alive & target tracking.</div>
     </div>
   </div>
 
@@ -314,125 +315,175 @@
     const logs = document.getElementById('terminal-logs');
     const hudSector = document.getElementById('hud-sector');
     const hudCoords = document.getElementById('hud-coords');
-    
+
     let engineRunning = false;
-    let scanConfirmed = false;
+    let scanState = 'idle'; // 'idle', 'awaiting', 'triangulating', 'locked'
     let wakeLock = null;
     let logInterval = null;
-    let radarAngle = 0;
-    let targetPulse = 0;
+    let triAnimProgress = 0; // 0 to 1 during triangulation
 
-    const randomSystemLogs = [
-      { text: "GEO_SCANNER: MAINTAINING SATELLITE BEACON...", type: "sys" },
-      { text: "RADAR_ALERT: SECTOR PING ACKNOWLEDGED AT (28.6531, -81.2583)", type: "radar" },
-      { text: "TARGET DETECTED: TUSKAWILLA MIDDLE SCHOOL [LOCK_ACTIVE]", type: "radar" },
-      { text: "SIGNAL_STRENGTH: 99.4% OPTIMAL BANDWIDTH", type: "success" },
-      { text: "RENDERING: GEO_PIPELINE_FRAME_60", type: "sys" },
-      { text: "RUNNING: TUSKAWILLA_SECTOR_BEACON_PING", type: "radar" },
-      { text: "RADAR: LOCK CONFIRMED ON TUSKAWILLA MIDDLE SCHOOL", type: "radar" },
-      { text: "SUCCESS: CORE_SHIELD_PING_ACKNOWLEDGED", type: "success" }
-    ];
+    // City grid buildings definition
+    let cityGrid = [];
+
+    function generateCityGrid() {
+      cityGrid = [];
+      const cols = 8;
+      const rows = 8;
+      const cellW = canvas.width / cols;
+      const cellH = canvas.height / rows;
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          // Skip the center area where the middle school sits
+          if ((r === 3 || r === 4) && (c === 3 || c === 4)) continue;
+          if (Math.random() > 0.25) {
+            cityGrid.push({
+              x: c * cellW + cellW * 0.15,
+              y: r * cellH + cellH * 0.15,
+              w: cellW * 0.7,
+              h: cellH * 0.7,
+              label: (r === 1 && c === 1) ? "CIVIC CENTER" :
+                     (r === 6 && c === 2) ? "PARKWAY PLAZA" :
+                     (r === 2 && c === 6) ? "TOWN CENTER" : ""
+            });
+          }
+        }
+      }
+    }
 
     function resizeCanvas() {
       canvas.width = canvas.parentElement.clientWidth;
       canvas.height = canvas.parentElement.clientHeight;
+      generateCityGrid();
     }
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    const nodes = Array.from({ length: 28 }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.8,
-      vy: (Math.random() - 0.5) * 0.8,
-      radius: 2 + Math.random() * 2
-    }));
-
-    function drawVisualizer() {
-      ctx.fillStyle = 'rgba(2, 6, 16, 0.25)';
+    function drawCityMap() {
+      ctx.fillStyle = '#020610';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
-      const primaryColor = engineRunning ? (scanConfirmed ? '#56d364' : '#e3b341') : '#38bdf8';
-      const secondaryColor = engineRunning ? (scanConfirmed ? 'rgba(86, 211, 100, 0.15)' : 'rgba(227, 179, 65, 0.15)') : 'rgba(56, 189, 248, 0.1)';
 
-      // Radar Rings
-      ctx.strokeStyle = secondaryColor;
+      // Draw City Grid Lines (Roads)
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.12)';
       ctx.lineWidth = 1;
-      [40, 80, 130, 180].forEach(r => {
+      const cols = 8;
+      const rows = 8;
+      for (let i = 0; i <= cols; i++) {
         ctx.beginPath();
-        ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
+        ctx.moveTo(i * (canvas.width / cols), 0);
+        ctx.lineTo(i * (canvas.width / cols), canvas.height);
         ctx.stroke();
-      });
-
-      // Rotating Radar Line
-      radarAngle += engineRunning ? (scanConfirmed ? 0.05 : 0.03) : 0.015;
-      ctx.beginPath();
-      ctx.moveTo(centerX, centerY);
-      ctx.lineTo(
-        centerX + Math.cos(radarAngle) * 200,
-        centerY + Math.sin(radarAngle) * 200
-      );
-      ctx.strokeStyle = primaryColor;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
-      // Target Lock (Only appears AFTER confirmation)
-      if (engineRunning && scanConfirmed) {
-        targetPulse += 0.05;
-        const pulseRadius = 18 + Math.sin(targetPulse) * 4;
-        const targetX = centerX + 45;
-        const targetY = centerY - 35;
-
-        ctx.strokeStyle = '#ff7b72';
-        ctx.lineWidth = 2;
+      }
+      for (let j = 0; j <= rows; j++) {
         ctx.beginPath();
-        ctx.arc(targetX, targetY, pulseRadius, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.fillStyle = '#ff7b72';
-        ctx.font = 'bold 10px monospace';
-        ctx.fillText('TARGET: TUSKAWILLA MS', targetX + 25, targetY + 4);
-
-        ctx.strokeStyle = 'rgba(255, 123, 114, 0.6)';
-        ctx.beginPath();
-        ctx.moveTo(targetX - 25, targetY); ctx.lineTo(targetX + 25, targetY);
-        ctx.moveTo(targetX, targetY - 25); ctx.lineTo(targetX, targetY + 25);
+        ctx.moveTo(0, j * (canvas.height / rows));
+        ctx.lineTo(canvas.width, j * (canvas.height / rows));
         ctx.stroke();
       }
 
-      // Floating Nodes
-      nodes.forEach((node, i) => {
-        node.x += node.vx * (engineRunning ? 1.8 : 1);
-        node.y += node.vy * (engineRunning ? 1.8 : 1);
+      // Draw City Blocks / Buildings
+      cityGrid.forEach(b => {
+        ctx.fillStyle = 'rgba(22, 27, 34, 0.85)';
+        ctx.fillRect(b.x, b.y, b.w, b.h);
+        ctx.strokeStyle = 'rgba(88, 166, 255, 0.25)';
+        ctx.strokeRect(b.x, b.y, b.w, b.h);
 
-        if (node.x < 0 || node.x > canvas.width) node.vx *= -1;
-        if (node.y < 0 || node.y > canvas.height) node.vy *= -1;
-
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
-        ctx.fillStyle = primaryColor;
-        ctx.fill();
-
-        for (let j = i + 1; j < nodes.length; j++) {
-          const other = nodes[j];
-          const dist = Math.hypot(node.x - other.x, node.y - other.y);
-          if (dist < 85) {
-            ctx.beginPath();
-            ctx.moveTo(node.x, node.y);
-            ctx.lineTo(other.x, other.y);
-            ctx.strokeStyle = primaryColor;
-            ctx.globalAlpha = 1 - dist / 85;
-            ctx.stroke();
-            ctx.globalAlpha = 1.0;
-          }
+        if (b.label) {
+          ctx.fillStyle = 'rgba(139, 148, 158, 0.5)';
+          ctx.font = '8px monospace';
+          ctx.fillText(b.label, b.x + 4, b.y + 12);
         }
       });
 
-      requestAnimationFrame(drawVisualizer);
+      // Target School Zone in Center
+      const schoolW = (canvas.width / cols) * 1.5;
+      const schoolH = (canvas.height / rows) * 1.5;
+      const schoolX = centerX - schoolW / 2;
+      const schoolY = centerY - schoolH / 2;
+
+      ctx.fillStyle = scanState === 'locked' ? 'rgba(86, 211, 100, 0.15)' : 'rgba(227, 179, 65, 0.1)';
+      ctx.fillRect(schoolX, schoolY, schoolW, schoolH);
+      ctx.strokeStyle = scanState === 'locked' ? '#56d364' : 'rgba(227, 179, 65, 0.5)';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(schoolX, schoolY, schoolW, schoolH);
+
+      ctx.fillStyle = scanState === 'locked' ? '#56d364' : '#e3b341';
+      ctx.font = 'bold 10px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('TUSKAWILLA MIDDLE SCHOOL', centerX, centerY + 3);
+      ctx.textAlign = 'left';
+
+      // Triangulation Satellites & Triangle Overlay
+      if (scanState === 'triangulating' || scanState === 'locked') {
+        if (scanState === 'triangulating' && triAnimProgress < 1) {
+          triAnimProgress += 0.015;
+        }
+
+        // Target triangle vertices surrounding the middle school
+        const p1 = { x: centerX, y: centerY - 80 };
+        const p2 = { x: centerX - 75, y: centerY + 55 };
+        const p3 = { x: centerX + 75, y: centerY + 55 };
+
+        // Animate satellites moving from outer screen inward
+        const sat1 = {
+          x: p1.x + (1 - triAnimProgress) * -150,
+          y: p1.y + (1 - triAnimProgress) * -200
+        };
+        const sat2 = {
+          x: p2.x + (1 - triAnimProgress) * -220,
+          y: p2.y + (1 - triAnimProgress) * 180
+        };
+        const sat3 = {
+          x: p3.x + (1 - triAnimProgress) * 220,
+          y: p3.y + (1 - triAnimProgress) * 180
+        };
+
+        const satColor = scanState === 'locked' ? '#ff7b72' : '#e3b341';
+
+        // Draw Connecting Lines (Triangulation Vector Triangle)
+        ctx.beginPath();
+        ctx.moveTo(sat1.x, sat1.y);
+        ctx.lineTo(sat2.x, sat2.y);
+        ctx.lineTo(sat3.x, sat3.y);
+        ctx.closePath();
+
+        ctx.strokeStyle = satColor;
+        ctx.lineWidth = 2;
+        if (scanState === 'locked') {
+          ctx.fillStyle = 'rgba(255, 123, 114, 0.12)';
+          ctx.fill();
+        }
+        ctx.stroke();
+
+        // Draw Satellites at Vertices
+        [sat1, sat2, sat3].forEach((sat, idx) => {
+          ctx.beginPath();
+          ctx.arc(sat.x, sat.y, 6, 0, Math.PI * 2);
+          ctx.fillStyle = satColor;
+          ctx.fill();
+
+          ctx.fillStyle = '#f0f6fc';
+          ctx.font = 'bold 9px monospace';
+          ctx.fillText(`SAT-0${idx + 1}`, sat.x + 9, sat.y + 3);
+        });
+
+        // Pulsing Lock Reticle if locked
+        if (scanState === 'locked') {
+          const pulse = (Math.sin(Date.now() / 200) + 1) * 3;
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, 28 + pulse, 0, Math.PI * 2);
+          ctx.strokeStyle = 'rgba(255, 123, 114, 0.8)';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+      }
+
+      requestAnimationFrame(drawCityMap);
     }
-    drawVisualizer();
+    drawCityMap();
 
     function addLog(text, style = '') {
       const div = document.createElement('div');
@@ -445,43 +496,56 @@
     }
 
     function promptForConfirmation() {
-      addLog('CONFIRMATION REQUIRED: Initiate sector search for Tuskawilla Middle School?', 'warn');
+      addLog('CONFIRMATION REQUIRED: Triangulate sector for Tuskawilla Middle School?', 'warn');
       const actionDiv = document.createElement('div');
       actionDiv.className = 'log';
-      actionDiv.innerHTML = `<button class="confirm-btn" onclick="executeLocationSearch(this)">[ CONFIRM LOCATION SEARCH ]</button>`;
+      actionDiv.innerHTML = `<button class="confirm-btn" onclick="executeLocationSearch(this)">[ CONFIRM TRIANGULATION ]</button>`;
       logs.appendChild(actionDiv);
       logs.scrollTop = logs.scrollHeight;
     }
 
     function executeLocationSearch(btn) {
       btn.disabled = true;
-      btn.innerText = 'SEARCHING...';
-      hudSector.innerText = 'SEARCHING...';
+      btn.innerText = 'TRIANGULATING...';
+      scanState = 'triangulating';
+      triAnimProgress = 0;
+
+      hudSector.innerText = 'TRIANGULATING LOCATION...';
       hudSector.className = 'hud-value hud-scanning';
 
-      addLog('User confirmed. Scanning regional sector...', 'sys');
+      addLog('User confirmed location search.', 'sys');
+      addLog('TRIANGULATING LOCATION: Acquiring satellite telemetry feeds SAT-01, SAT-02, SAT-03...', 'radar');
 
       setTimeout(() => {
-        addLog('Pinging local telemetry towers...', 'sys');
-      }, 800);
+        addLog('Aligning vector coordinates across city sector grid...', 'sys');
+      }, 1000);
 
       setTimeout(() => {
-        scanConfirmed = true;
+        scanState = 'locked';
         btn.parentElement.remove();
         hudSector.innerText = 'TUSKAWILLA_MS [LOCKED]';
         hudSector.className = 'hud-value hud-alert';
         hudCoords.innerText = '28°39\'11"N 81°15\'30"W';
 
-        addLog('TARGET ACQUIRED: Tuskawilla Middle School detected at 28.6531° N, 81.2583° W', 'radar');
+        addLog('TRIANGULATION COMPLETE: Vector triangle locked onto Tuskawilla Middle School.', 'radar');
+        addLog('TARGET ACQUIRED at (28.6531° N, 81.2583° W)', 'success');
         startRandomLogStream();
-      }, 2000);
+      }, 2500);
     }
+
+    const randomSystemLogs = [
+      { text: "TRIANGULATOR: MAINTAINING THREE-POINT SATELLITE LOCK...", type: "sys" },
+      { text: "SECTOR_PING: ACKNOWLEDGED AT TUSKAWILLA MIDDLE SCHOOL", type: "radar" },
+      { text: "VECTOR_BEACON: SIGNAL STRENGTH 99.8% OPTIMAL", type: "success" },
+      { text: "RUNNING: TUSKAWILLA_SECTOR_TRIANGULATION_PULSE", type: "radar" },
+      { text: "SUCCESS: CORE_SHIELD_KEEP_ALIVE_PULSE_ACKNOWLEDGED", type: "success" }
+    ];
 
     function startRandomLogStream() {
       logInterval = setInterval(() => {
         const randomItem = randomSystemLogs[Math.floor(Math.random() * randomSystemLogs.length)];
         addLog(randomItem.text, randomItem.type);
-      }, 1400);
+      }, 1500);
     }
 
     function stopRandomLogStream() {
@@ -495,7 +559,7 @@
 
       if (!engineRunning) {
         engineRunning = true;
-        scanConfirmed = false;
+        scanState = 'awaiting';
         btn.classList.add('active');
         icon.innerText = '■';
         text.innerText = 'STOP SCRIPT';
@@ -508,7 +572,7 @@
         promptForConfirmation();
       } else {
         engineRunning = false;
-        scanConfirmed = false;
+        scanState = 'idle';
         btn.classList.remove('active');
         icon.innerText = '▶';
         text.innerText = 'RUN SCRIPT';
@@ -519,7 +583,7 @@
 
         releaseWakeLock();
         stopRandomLogStream();
-        addLog('Script execution terminated. Radar lock released.', 'warn');
+        addLog('Script execution terminated. Satellite locks released.', 'warn');
       }
     }
 
