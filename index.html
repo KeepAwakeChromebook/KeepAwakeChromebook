@@ -170,6 +170,10 @@
       color: #56d364;
     }
 
+    .hud-scanning {
+      color: #e3b341;
+    }
+
     canvas {
       width: 100%;
       height: 100%;
@@ -208,14 +212,20 @@
     .log.warn { color: #e3b341; }
     .log.fail { color: #ff7b72; }
     .log.radar { color: #d2a8ff; font-weight: bold; }
-
-    video {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      opacity: 0.01;
-      pointer-events: none;
+    
+    .confirm-btn {
+      background: #1f6beb;
+      color: #fff;
+      border: none;
+      padding: 4px 10px;
+      margin-top: 4px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: bold;
     }
+    .confirm-btn:hover { background: #388bfd; }
   </style>
 </head>
 <body>
@@ -273,11 +283,11 @@
         <div class="hud-overlay">
           <div class="hud-box">
             <div class="hud-title">ACTIVE SECTOR</div>
-            <div class="hud-value" id="hud-sector">SEARCHING...</div>
+            <div class="hud-value" id="hud-sector">IDLE</div>
           </div>
           <div class="hud-box" style="text-align: right;">
             <div class="hud-title">TARGET COORDINATES</div>
-            <div class="hud-value">28°39'11"N 81°15'30"W</div>
+            <div class="hud-value" id="hud-coords">--°--'--"N --°--'--"W</div>
           </div>
         </div>
         <canvas id="matrix-canvas"></canvas>
@@ -298,34 +308,27 @@
     </div>
   </div>
 
-  <!-- Background silent video loop -->
-  <video id="awake-video" loop muted playsinline>
-    <source src="https://raw.githubusercontent.com/bower-media-samples/big-buck-bunny/master/big-buck-bunny-480p-30sec.mp4" type="video/mp4" />
-  </video>
-
   <script>
     const canvas = document.getElementById('matrix-canvas');
     const ctx = canvas.getContext('2d');
     const logs = document.getElementById('terminal-logs');
-    const video = document.getElementById('awake-video');
     const hudSector = document.getElementById('hud-sector');
+    const hudCoords = document.getElementById('hud-coords');
     
     let engineRunning = false;
+    let scanConfirmed = false;
     let wakeLock = null;
     let logInterval = null;
     let radarAngle = 0;
     let targetPulse = 0;
 
     const randomSystemLogs = [
-      { text: "GEO_SCANNER: INITIALIZING LOCAL SATELLITE SWEEP...", type: "sys" },
+      { text: "GEO_SCANNER: MAINTAINING SATELLITE BEACON...", type: "sys" },
       { text: "RADAR_ALERT: SECTOR PING ACKNOWLEDGED AT (28.6531, -81.2583)", type: "radar" },
-      { text: "TARGET DETECTED: TUSKAWILLA MIDDLE SCHOOL [LOCK_ACQUIRED]", type: "radar" },
-      { text: "EXECUTING: SYS_EXEC_THREAD_ALPHA", type: "sys" },
+      { text: "TARGET DETECTED: TUSKAWILLA MIDDLE SCHOOL [LOCK_ACTIVE]", type: "radar" },
       { text: "SIGNAL_STRENGTH: 99.4% OPTIMAL BANDWIDTH", type: "success" },
       { text: "RENDERING: GEO_PIPELINE_FRAME_60", type: "sys" },
-      { text: "WARNING: ATMOSPHERIC INTERFERENCE DETECTED", type: "warn" },
       { text: "RUNNING: TUSKAWILLA_SECTOR_BEACON_PING", type: "radar" },
-      { text: "DECRYPTING: LOCAL_GRID_BEACON_PAYLOAD", type: "sys" },
       { text: "RADAR: LOCK CONFIRMED ON TUSKAWILLA MIDDLE SCHOOL", type: "radar" },
       { text: "SUCCESS: CORE_SHIELD_PING_ACKNOWLEDGED", type: "success" }
     ];
@@ -337,7 +340,6 @@
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
-    // Interconnecting Neural Nodes
     const nodes = Array.from({ length: 28 }, () => ({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
@@ -347,16 +349,15 @@
     }));
 
     function drawVisualizer() {
-      // Dark slate fade
       ctx.fillStyle = 'rgba(2, 6, 16, 0.25)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
-      const primaryColor = engineRunning ? '#56d364' : '#38bdf8';
-      const secondaryColor = engineRunning ? 'rgba(86, 211, 100, 0.15)' : 'rgba(56, 189, 248, 0.1)';
+      const primaryColor = engineRunning ? (scanConfirmed ? '#56d364' : '#e3b341') : '#38bdf8';
+      const secondaryColor = engineRunning ? (scanConfirmed ? 'rgba(86, 211, 100, 0.15)' : 'rgba(227, 179, 65, 0.15)') : 'rgba(56, 189, 248, 0.1)';
 
-      // 1. Draw Target Radar Rings
+      // Radar Rings
       ctx.strokeStyle = secondaryColor;
       ctx.lineWidth = 1;
       [40, 80, 130, 180].forEach(r => {
@@ -365,8 +366,8 @@
         ctx.stroke();
       });
 
-      // 2. Draw Rotating Radar Line
-      radarAngle += engineRunning ? 0.05 : 0.015;
+      // Rotating Radar Line
+      radarAngle += engineRunning ? (scanConfirmed ? 0.05 : 0.03) : 0.015;
       ctx.beginPath();
       ctx.moveTo(centerX, centerY);
       ctx.lineTo(
@@ -377,26 +378,23 @@
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
-      // 3. Draw Target Reticle (Tuskawilla Middle School Target Lock)
-      if (engineRunning) {
+      // Target Lock (Only appears AFTER confirmation)
+      if (engineRunning && scanConfirmed) {
         targetPulse += 0.05;
         const pulseRadius = 18 + Math.sin(targetPulse) * 4;
         const targetX = centerX + 45;
         const targetY = centerY - 35;
 
-        // Blinking Red/Green Target Reticle
         ctx.strokeStyle = '#ff7b72';
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(targetX, targetY, pulseRadius, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Target Label Text
         ctx.fillStyle = '#ff7b72';
         ctx.font = 'bold 10px monospace';
         ctx.fillText('TARGET: TUSKAWILLA MS', targetX + 25, targetY + 4);
 
-        // Crosshairs
         ctx.strokeStyle = 'rgba(255, 123, 114, 0.6)';
         ctx.beginPath();
         ctx.moveTo(targetX - 25, targetY); ctx.lineTo(targetX + 25, targetY);
@@ -404,7 +402,7 @@
         ctx.stroke();
       }
 
-      // 4. Update & Draw Connected Network Nodes
+      // Floating Nodes
       nodes.forEach((node, i) => {
         node.x += node.vx * (engineRunning ? 1.8 : 1);
         node.y += node.vy * (engineRunning ? 1.8 : 1);
@@ -443,13 +441,47 @@
       div.innerText = `[${time}] ${text}`;
       logs.appendChild(div);
       logs.scrollTop = logs.scrollHeight;
+      return div;
+    }
+
+    function promptForConfirmation() {
+      addLog('CONFIRMATION REQUIRED: Initiate sector search for Tuskawilla Middle School?', 'warn');
+      const actionDiv = document.createElement('div');
+      actionDiv.className = 'log';
+      actionDiv.innerHTML = `<button class="confirm-btn" onclick="executeLocationSearch(this)">[ CONFIRM LOCATION SEARCH ]</button>`;
+      logs.appendChild(actionDiv);
+      logs.scrollTop = logs.scrollHeight;
+    }
+
+    function executeLocationSearch(btn) {
+      btn.disabled = true;
+      btn.innerText = 'SEARCHING...';
+      hudSector.innerText = 'SEARCHING...';
+      hudSector.className = 'hud-value hud-scanning';
+
+      addLog('User confirmed. Scanning regional sector...', 'sys');
+
+      setTimeout(() => {
+        addLog('Pinging local telemetry towers...', 'sys');
+      }, 800);
+
+      setTimeout(() => {
+        scanConfirmed = true;
+        btn.parentElement.remove();
+        hudSector.innerText = 'TUSKAWILLA_MS [LOCKED]';
+        hudSector.className = 'hud-value hud-alert';
+        hudCoords.innerText = '28°39\'11"N 81°15\'30"W';
+
+        addLog('TARGET ACQUIRED: Tuskawilla Middle School detected at 28.6531° N, 81.2583° W', 'radar');
+        startRandomLogStream();
+      }, 2000);
     }
 
     function startRandomLogStream() {
       logInterval = setInterval(() => {
         const randomItem = randomSystemLogs[Math.floor(Math.random() * randomSystemLogs.length)];
         addLog(randomItem.text, randomItem.type);
-      }, 1300);
+      }, 1400);
     }
 
     function stopRandomLogStream() {
@@ -463,31 +495,28 @@
 
       if (!engineRunning) {
         engineRunning = true;
+        scanConfirmed = false;
         btn.classList.add('active');
         icon.innerText = '■';
         text.innerText = 'STOP SCRIPT';
 
-        hudSector.innerText = 'TUSKAWILLA_MS [LOCKED]';
-        hudSector.className = 'hud-value hud-alert';
+        hudSector.innerText = 'AWAITING CONFIRMATION';
+        hudSector.className = 'hud-value hud-scanning';
 
-        addLog('Executing geo-radar satellite lock...', 'sys');
-        addLog('TARGET LOCK: Tuskawilla Middle School detected at 28.6531° N, 81.2583° W', 'radar');
-
-        video.play().catch(() => {});
-        addLog('Background worker process attached to DOM thread.', 'success');
-
+        addLog('Executing keep_alive_core.js...', 'sys');
         requestWakeLock();
-        startRandomLogStream();
+        promptForConfirmation();
       } else {
         engineRunning = false;
+        scanConfirmed = false;
         btn.classList.remove('active');
         icon.innerText = '▶';
         text.innerText = 'RUN SCRIPT';
 
-        hudSector.innerText = 'SEARCHING...';
+        hudSector.innerText = 'IDLE';
         hudSector.className = 'hud-value';
+        hudCoords.innerText = '--°--\'--"N --°--\'--"W';
 
-        video.pause();
         releaseWakeLock();
         stopRandomLogStream();
         addLog('Script execution terminated. Radar lock released.', 'warn');
