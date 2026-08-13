@@ -3,222 +3,172 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Terminal System Core v4.0.2</title>
+  <title>Core_Matrix.js - DevStudio Environment</title>
   <style>
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: 'Consolas', 'Courier New', Courier, monospace;
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
     }
 
     body {
-      background-color: #050811;
-      color: #00ff66;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      overflow: hidden;
-      padding: 1rem;
-    }
-
-    /* Subtle CRT Scanline overlay */
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
-      background-size: 100% 4px;
-      z-index: 100;
-      pointer-events: none;
-    }
-
-    /* Outer Terminal Frame */
-    .terminal-window {
-      width: 100%;
-      max-width: 900px;
-      height: 520px;
-      background-color: #0a0f1d;
-      border: 1px solid #1e293b;
-      border-radius: 8px;
-      box-shadow: 0 0 30px rgba(0, 255, 102, 0.1);
+      background-color: #0d1117;
+      color: #c9d1d9;
+      height: 100vh;
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      font-size: 13px;
     }
 
-    /* Window Header Bar */
-    .terminal-header {
-      background-color: #0f172a;
-      padding: 0.6rem 1rem;
+    /* Top Navigation / Editor Bar */
+    .top-bar {
+      background-color: #161b22;
+      height: 38px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid #1e293b;
+      padding: 0 1rem;
+      border-bottom: 1px solid #21262d;
     }
 
-    .window-buttons {
+    .tabs {
       display: flex;
+      gap: 2px;
+      height: 100%;
+    }
+
+    .tab {
+      background: #0d1117;
+      padding: 0 1rem;
+      display: flex;
+      align-items: center;
       gap: 0.5rem;
+      border-top: 2px solid #58a6ff;
+      color: #f0f6fc;
+      font-size: 0.8rem;
     }
 
-    .dot {
-      width: 11px;
-      height: 11px;
-      border-radius: 50%;
+    .run-btn {
+      background: #238636;
+      color: #fff;
+      border: none;
+      padding: 0.35rem 0.85rem;
+      border-radius: 4px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: background 0.2s;
     }
 
-    .dot-red { background-color: #ff5f56; }
-    .dot-yellow { background-color: #ffbd2e; }
-    .dot-green { background-color: #27c93f; }
+    .run-btn:hover { background: #2ea043; }
+    .run-btn.active { background: #da3633; }
 
-    .header-title {
-      color: #64748b;
+    /* IDE Layout */
+    .ide-container {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      flex: 1;
+      height: calc(100vh - 38px - 160px);
+    }
+
+    /* Sidebar File Explorer */
+    .sidebar {
+      background: #161b22;
+      border-right: 1px solid #21262d;
+      padding: 0.75rem 0;
+    }
+
+    .sidebar-title {
+      padding: 0 0.75rem 0.5rem;
       font-size: 0.75rem;
+      color: #8b949e;
+      text-transform: uppercase;
       letter-spacing: 1px;
     }
 
-    /* Main Grid Split: Left = CMD, Right = Control */
-    .terminal-body {
-      display: grid;
-      grid-template-columns: 1.3fr 1fr;
-      flex: 1;
-      height: calc(100% - 35px);
-    }
-
-    /* Left Side: Booting Command Prompt */
-    .cmd-pane {
-      background-color: #02040a;
-      padding: 1rem;
-      overflow-y: auto;
-      border-right: 1px solid #1e293b;
-      font-size: 0.8rem;
-      line-height: 1.5;
-      color: #38bdf8;
-    }
-
-    .cmd-pane::-webkit-scrollbar {
-      width: 4px;
-    }
-
-    .cmd-pane::-webkit-scrollbar-thumb {
-      background: #1e293b;
-    }
-
-    .log-line {
-      margin-bottom: 0.25rem;
-      word-break: break-all;
-    }
-
-    .log-line.warn { color: #f59e0b; }
-    .log-line.success { color: #00ff66; }
-    .log-line.white { color: #f8fafc; }
-
-    .cursor {
-      display: inline-block;
-      width: 8px;
-      height: 14px;
-      background-color: #00ff66;
-      animation: blink 0.8s infinite;
-      vertical-align: middle;
-    }
-
-    /* Right Side: Control Dashboard */
-    .control-pane {
-      background-color: #080d1a;
-      padding: 1.5rem;
+    .file-item {
+      padding: 0.35rem 0.75rem;
       display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      align-items: center;
-      text-align: center;
-    }
-
-    .status-box {
-      background: #02040a;
-      border: 1px solid #1e293b;
-      padding: 0.5rem 1rem;
-      border-radius: 4px;
-      width: 100%;
-      font-size: 0.75rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .status-indicator {
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background-color: #ef4444;
-    }
-
-    .status-indicator.active {
-      background-color: #00ff66;
-      box-shadow: 0 0 10px #00ff66;
-    }
-
-    .control-title {
-      color: #f8fafc;
-      font-size: 1.1rem;
-      margin-top: 1rem;
-    }
-
-    .control-desc {
-      color: #64748b;
-      font-size: 0.7rem;
-      line-height: 1.4;
-      margin-top: 0.5rem;
-    }
-
-    /* Big Futuristic Toggle Button */
-    .power-btn {
-      margin: 1.5rem 0;
-      width: 140px;
-      height: 140px;
-      border-radius: 50%;
-      background: #02040a;
-      border: 2px solid #1e293b;
-      color: #64748b;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
       align-items: center;
       gap: 0.5rem;
-      transition: all 0.3s ease;
-      box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.8);
+      color: #8b949e;
+      cursor: pointer;
     }
 
-    .power-btn:hover {
-      border-color: #38bdf8;
-      color: #38bdf8;
+    .file-item.active {
+      background: #21262d;
+      color: #58a6ff;
     }
 
-    .power-btn.active {
-      border-color: #00ff66;
-      color: #00ff66;
-      box-shadow: 0 0 20px rgba(0, 255, 102, 0.2), inset 0 0 15px rgba(0, 255, 102, 0.1);
+    /* Code & Visual Canvas Area */
+    .editor-area {
+      position: relative;
+      background: #0d1117;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      overflow: hidden;
     }
 
-    .power-icon {
-      font-size: 2rem;
+    .code-view {
+      padding: 1rem;
+      line-height: 1.6;
+      overflow-y: auto;
+      border-right: 1px solid #21262d;
     }
 
-    .power-text {
-      font-size: 0.65rem;
-      letter-spacing: 1.5px;
-      font-weight: bold;
+    .kw { color: #ff7b72; }
+    .fn { color: #d2a8ff; }
+    .str { color: #a5d6ff; }
+    .cm { color: #8b949e; font-style: italic; }
+    .num { color: #79c0ff; }
+
+    /* Visual Matrix/Node Canvas */
+    .canvas-container {
+      position: relative;
+      background: #040d1a;
+      overflow: hidden;
     }
 
-    .system-footer {
-      font-size: 0.65rem;
-      color: #334155;
+    canvas {
       width: 100%;
-      text-align: center;
+      height: 100%;
     }
+
+    /* Bottom Terminal Section */
+    .bottom-terminal {
+      height: 160px;
+      background: #161b22;
+      border-top: 1px solid #21262d;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .terminal-header {
+      padding: 0.35rem 1rem;
+      background: #0d1117;
+      border-bottom: 1px solid #21262d;
+      color: #8b949e;
+      font-size: 0.75rem;
+      display: flex;
+      gap: 1rem;
+    }
+
+    .terminal-logs {
+      padding: 0.5rem 1rem;
+      overflow-y: auto;
+      flex: 1;
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+
+    .log { margin-bottom: 0.2rem; }
+    .log.sys { color: #79c0ff; }
+    .log.success { color: #56d364; }
+    .log.warn { color: #e3b341; }
 
     video {
       position: absolute;
@@ -227,70 +177,74 @@
       opacity: 0.01;
       pointer-events: none;
     }
-
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0; }
-    }
-
-    @media (max-width: 700px) {
-      .terminal-body {
-        grid-template-columns: 1fr;
-        grid-template-rows: 1fr 1fr;
-      }
-      .terminal-window {
-        height: 650px;
-      }
-    }
   </style>
 </head>
 <body>
 
-  <div class="terminal-window">
-    <!-- Top Window Bar -->
-    <div class="terminal-header">
-      <div class="window-buttons">
-        <span class="dot dot-red"></span>
-        <span class="dot dot-yellow"></span>
-        <span class="dot dot-green"></span>
+  <!-- Top IDE Bar -->
+  <div class="top-bar">
+    <div class="tabs">
+      <div class="tab">
+        <span style="color:#e3b341;">⚡</span> keep_alive_core.js
       </div>
-      <div class="header-title">cmd.exe - root@kernel-v4</div>
-      <div></div>
+    </div>
+    <button class="run-btn" id="run-btn" onclick="toggleEngine()">
+      <span id="run-icon">▶</span> <span id="run-text">RUN SCRIPT</span>
+    </button>
+  </div>
+
+  <!-- IDE Core Layout -->
+  <div class="ide-container">
+    <!-- File Tree -->
+    <div class="sidebar">
+      <div class="sidebar-title">Explorer</div>
+      <div class="file-item active">📄 keep_alive_core.js</div>
+      <div class="file-item">⚙️ package.json</div>
+      <div class="file-item">🛡️ system_hooks.dll</div>
+      <div class="file-item">🔒 security_policy.config</div>
     </div>
 
-    <div class="terminal-body">
-      <!-- Left: Animated Command Prompt -->
-      <div class="cmd-pane" id="cmd-output">
-        <div class="log-line white">Microsoft Windows [Version 10.0.19045.3803]</div>
-        <div class="log-line white">(c) Microsoft Corporation. All rights reserved.</div>
-        <div class="log-line">&nbsp;</div>
-        <div class="log-line">C:\System32\KeepAwake> init_engine.bat</div>
+    <!-- Main Workspace -->
+    <div class="editor-area">
+      <!-- Pseudocode Screen -->
+      <div class="code-view">
+        <div class="cm">// Initialize System Wake-Lock Matrix</div>
+        <div><span class="kw">const</span> engine = <span class="kw">require</span>(<span class="str">'@core/power-shield'</span>);</div>
+        <div><span class="kw">const</span> mediaLoop = <span class="kw">new</span> <span class="fn">BackgroundWorker</span>();</div>
+        <br />
+        <div><span class="kw">async function</span> <span class="fn">mountShield</span>() {</div>
+        <div>&nbsp;&nbsp;<span class="kw">try</span> {</div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">await</span> mediaLoop.<span class="fn">attachStream</span>();</div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">await</span> navigator.wakeLock.<span class="fn">request</span>(<span class="str">'screen'</span>);</div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">print</span>(<span class="str">'Status: KEEPALIVE_ACTIVE'</span>);</div>
+        <div>&nbsp;&nbsp;} <span class="kw">catch</span> (err) {</div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">logError</span>(err);</div>
+        <div>&nbsp;&nbsp;}</div>
+        <div>}</div>
+        <br />
+        <div><span class="cm">// Intercept idle timeouts continuously</span></div>
+        <div><span class="fn">setInterval</span>(() => {</div>
+        <div>&nbsp;&nbsp;engine.<span class="fn">pingThread</span>({ <span class="num">keepAwake: true</span> });</div>
+        <div>}, <span class="num">5000</span>);</div>
       </div>
 
-      <!-- Right: Main Control Panel -->
-      <div class="control-pane">
-        <div class="status-box">
-          <span style="color:#64748b;">CORE STATUS:</span>
-          <span style="display:flex; align-items:center; gap:0.5rem;">
-            <span class="status-indicator" id="status-ind"></span>
-            <strong id="status-txt" style="color:#ef4444;">OFFLINE</strong>
-          </span>
-        </div>
-
-        <div>
-          <div class="control-title">WAKE-LOCK MATRIX</div>
-          <div class="control-desc">Intercepts ChromeOS power timeouts by running background thread loops and media locks.</div>
-        </div>
-
-        <button class="power-btn" id="power-button" onclick="toggleSystem()">
-          <span class="power-icon">⏻</span>
-          <span class="power-text" id="power-txt">ENGAGE</span>
-        </button>
-
-        <div class="system-footer">
-          THREAD_ID: 0x88F2A1 | PORT: 8080
-        </div>
+      <!-- Animated Cyber Canvas -->
+      <div class="canvas-container">
+        <canvas id="matrix-canvas"></canvas>
       </div>
+    </div>
+  </div>
+
+  <!-- Terminal Output -->
+  <div class="bottom-terminal">
+    <div class="terminal-header">
+      <span style="color:#f0f6fc;">TERMINAL</span>
+      <span>OUTPUT</span>
+      <span>DEBUG CONSOLE</span>
+    </div>
+    <div class="terminal-logs" id="terminal-logs">
+      <div class="log sys">[SYSTEM] IDE Environment loaded successfully.</div>
+      <div class="log sys">[SYSTEM] Press 'RUN SCRIPT' to engage screen wake locks.</div>
     </div>
   </div>
 
@@ -300,80 +254,85 @@
   </video>
 
   <script>
-    const cmd = document.getElementById('cmd-output');
+    const canvas = document.getElementById('matrix-canvas');
+    const ctx = canvas.getContext('2d');
+    const logs = document.getElementById('terminal-logs');
     const video = document.getElementById('awake-video');
+    
+    let engineRunning = false;
     let wakeLock = null;
-    let systemActive = false;
 
-    // Fake Command Prompt Boot Sequence Logs
-    const bootLogs = [
-      { text: "[INFO] Allocating virtual memory allocation buffers...", delay: 200 },
-      { text: "[INFO] Loading system dependencies (v8_engine.dll)", delay: 400 },
-      { text: "[OK] Display driver interface initialized.", delay: 700, class: "success" },
-      { text: "[WARN] Low-power timeout detected in OS environment.", delay: 1000, class: "warn" },
-      { text: "[INFO] Mounting media wake-lock hooks...", delay: 1300 },
-      { text: "[OK] Background worker threads standby.", delay: 1600, class: "success" },
-      { text: "C:\\System32\\KeepAwake> Ready for engagement.", delay: 1900, class: "white" }
-    ];
+    // Resize Canvas
+    function resizeCanvas() {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
 
-    // Run Terminal Boot Animation on Load
-    window.addEventListener('load', () => {
-      bootLogs.forEach(log => {
-        setTimeout(() => {
-          const div = document.createElement('div');
-          div.className = `log-line ${log.class || ''}`;
-          div.innerText = log.text;
-          cmd.appendChild(div);
-          cmd.scrollTop = cmd.scrollHeight;
-        }, log.delay);
+    // Digital Rain / Node Particle Visualizer
+    const particles = Array.from({ length: 40 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      speed: 0.5 + Math.random() * 1.5,
+      size: 2 + Math.random() * 3
+    }));
+
+    function drawVisualizer() {
+      ctx.fillStyle = 'rgba(4, 13, 26, 0.2)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      particles.forEach(p => {
+        p.y += engineRunning ? p.speed * 2 : p.speed * 0.5;
+        if (p.y > canvas.height) p.y = 0;
+
+        ctx.fillStyle = engineRunning ? '#56d364' : '#58a6ff';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
       });
-    });
 
-    function printLog(text, type = '') {
+      requestAnimationFrame(drawVisualizer);
+    }
+    drawVisualizer();
+
+    function addLog(text, style = '') {
       const div = document.createElement('div');
-      div.className = `log-line ${type}`;
+      div.className = `log ${style}`;
       const time = new Date().toLocaleTimeString();
       div.innerText = `[${time}] ${text}`;
-      cmd.appendChild(div);
-      cmd.scrollTop = cmd.scrollHeight;
+      logs.appendChild(div);
+      logs.scrollTop = logs.scrollHeight;
     }
 
-    async function toggleSystem() {
-      const btn = document.getElementById('power-button');
-      const pwrTxt = document.getElementById('power-txt');
-      const statusInd = document.getElementById('status-ind');
-      const statusTxt = document.getElementById('status-txt');
+    async function toggleEngine() {
+      const btn = document.getElementById('run-btn');
+      const icon = document.getElementById('run-icon');
+      const text = document.getElementById('run-text');
 
-      if (!systemActive) {
-        // TURN ON
-        systemActive = true;
+      if (!engineRunning) {
+        engineRunning = true;
         btn.classList.add('active');
-        pwrTxt.innerText = 'DISENGAGE';
-        statusInd.classList.add('active');
-        statusTxt.innerText = 'ONLINE';
-        statusTxt.style.color = '#00ff66';
+        icon.innerText = '■';
+        text.innerText = 'STOP SCRIPT';
 
-        printLog("EXECUTING: START_PREVENTION_SHIELD", "warn");
-        
-        // Start Video Loop
+        addLog('Executing keep_alive_core.js...', 'sys');
+
+        // Play silent media loop
         video.play().catch(() => {});
-        printLog("[MEDIA] Silent audio/video background thread running.", "success");
+        addLog('Background worker process attached to DOM thread.', 'success');
 
-        // Request Browser Wake Lock
+        // Request Screen Wake Lock
         requestWakeLock();
-        printLog("[LOCK] ScreenWakeLock API active.", "success");
       } else {
-        // TURN OFF
-        systemActive = false;
+        engineRunning = false;
         btn.classList.remove('active');
-        pwrTxt.innerText = 'ENGAGE';
-        statusInd.classList.remove('active');
-        statusTxt.innerText = 'OFFLINE';
-        statusTxt.style.color = '#ef4444';
+        icon.innerText = '▶';
+        text.innerText = 'RUN SCRIPT';
 
         video.pause();
         releaseWakeLock();
-        printLog("SYSTEM SHUTDOWN: Returning to low-power idle mode.", "warn");
+        addLog('Script execution terminated. Returning to idle.', 'warn');
       }
     }
 
@@ -381,25 +340,23 @@
       try {
         if ('wakeLock' in navigator) {
           wakeLock = await navigator.wakeLock.request('screen');
+          addLog('ScreenWakeLock API lock acquired successfully.', 'success');
         }
       } catch (err) {
-        printLog(`[ERR] Wake Lock failed: ${err.message}`, "warn");
+        addLog(`Wake Lock warning: ${err.message}`, 'warn');
       }
     }
 
     function releaseWakeLock() {
       if (wakeLock !== null) {
-        wakeLock.release().then(() => {
-          wakeLock = null;
-        });
+        wakeLock.release().then(() => { wakeLock = null; });
       }
     }
 
-    // Re-engage lock if user clicks back into the tab
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && systemActive) {
+      if (document.visibilityState === 'visible' && engineRunning) {
         requestWakeLock();
-        printLog("[HOOK] Tab re-focused. Re-asserting wake lock.", "white");
+        addLog('Tab active: Re-asserted system locks.', 'sys');
       }
     });
   </script>
